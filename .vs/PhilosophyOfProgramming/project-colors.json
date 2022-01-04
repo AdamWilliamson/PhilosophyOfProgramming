@@ -1,0 +1,131 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "ba137fa0-8640-4d1b-96c8-ad8d489acd2c": {
+      "ProjectGuid": "ba137fa0-8640-4d1b-96c8-ad8d489acd2c",
+      "DisplayName": "Validations",
+      "ColorIndex": 0
+    },
+    "f98e3584-4deb-4829-bc06-42e59e300d96": {
+      "ProjectGuid": "f98e3584-4deb-4829-bc06-42e59e300d96",
+      "DisplayName": "Validations_Tests",
+      "ColorIndex": 1
+    },
+    "23355998-dc3e-4f8d-a3de-6b0b545a44a1": {
+      "ProjectGuid": "23355998-dc3e-4f8d-a3de-6b0b545a44a1",
+      "DisplayName": "ServiceLayer",
+      "ColorIndex": 2
+    },
+    "d0235a65-f37a-4762-b66f-3361e77909e9": {
+      "ProjectGuid": "d0235a65-f37a-4762-b66f-3361e77909e9",
+      "DisplayName": "CQRS_UnitTests",
+      "ColorIndex": 3
+    },
+    "2083648f-fb33-4410-bcd1-635cfad831ec": {
+      "ProjectGuid": "2083648f-fb33-4410-bcd1-635cfad831ec",
+      "DisplayName": "EF_Repository",
+      "ColorIndex": 4
+    },
+    "9bab7116-bdbc-4771-8937-9a547675ccaf": {
+      "ProjectGuid": "9bab7116-bdbc-4771-8937-9a547675ccaf",
+      "DisplayName": "NSubstitute_Builders",
+      "ColorIndex": 5
+    },
+    "2feed2d6-57a2-48b0-83f7-f1585b410fdb": {
+      "ProjectGuid": "2feed2d6-57a2-48b0-83f7-f1585b410fdb",
+      "DisplayName": "IntegrationBase",
+      "ColorIndex": 6
+    },
+    "dc06a6c2-06e5-4eda-b702-2b4bb28dd53e": {
+      "ProjectGuid": "dc06a6c2-06e5-4eda-b702-2b4bb28dd53e",
+      "DisplayName": "BDD",
+      "ColorIndex": 7
+    },
+    "df2e50ad-2f91-4cd0-b6cd-55892c6c9629": {
+      "ProjectGuid": "df2e50ad-2f91-4cd0-b6cd-55892c6c9629",
+      "DisplayName": "BDD_UnitTests",
+      "ColorIndex": 8
+    },
+    "fa920334-0d24-4441-a4df-0bb18e106d18": {
+      "ProjectGuid": "fa920334-0d24-4441-a4df-0bb18e106d18",
+      "DisplayName": "Repository_UnitTests",
+      "ColorIndex": 9
+    },
+    "d1a641e0-8e61-405d-a606-e8c5bcf420f5": {
+      "ProjectGuid": "d1a641e0-8e61-405d-a606-e8c5bcf420f5",
+      "DisplayName": "Utilities_UnitTests",
+      "ColorIndex": 10
+    },
+    "07b4593b-95f8-4ce9-9c07-d338190a6c67": {
+      "ProjectGuid": "07b4593b-95f8-4ce9-9c07-d338190a6c67",
+      "DisplayName": "DataAccess",
+      "ColorIndex": 11
+    },
+    "0ed082cd-e375-4506-95b5-3b0b2c75aaec": {
+      "ProjectGuid": "0ed082cd-e375-4506-95b5-3b0b2c75aaec",
+      "DisplayName": "PhilosophyOfProgramming",
+      "ColorIndex": 12
+    },
+    "d9771b84-9fcf-4372-9d56-6a57adc4764d": {
+      "ProjectGuid": "d9771b84-9fcf-4372-9d56-6a57adc4764d",
+      "DisplayName": "Winforms_UI_Helpers",
+      "ColorIndex": 13
+    },
+    "5f5dd05a-65f6-4afb-9e3d-58b63a410f5b": {
+      "ProjectGuid": "5f5dd05a-65f6-4afb-9e3d-58b63a410f5b",
+      "DisplayName": "Document",
+      "ColorIndex": 14
+    },
+    "6e424cb6-c362-4a5d-a789-9dd024939092": {
+      "ProjectGuid": "6e424cb6-c362-4a5d-a789-9dd024939092",
+      "DisplayName": "MVC",
+      "ColorIndex": 15
+    },
+    "5290c9b2-73e7-4286-888e-894b6c536bf3": {
+      "ProjectGuid": "5290c9b2-73e7-4286-888e-894b6c536bf3",
+      "DisplayName": "CQRS",
+      "ColorIndex": 0
+    },
+    "a6b723fc-f9f9-4d0d-bd8c-5c1eacf54522": {
+      "ProjectGuid": "a6b723fc-f9f9-4d0d-bd8c-5c1eacf54522",
+      "DisplayName": "Repository",
+      "ColorIndex": 1
+    },
+    "6caaa482-ae2f-4ea2-902f-b4a745ade254": {
+      "ProjectGuid": "6caaa482-ae2f-4ea2-902f-b4a745ade254",
+      "DisplayName": "Builders",
+      "ColorIndex": 2
+    },
+    "23c19b94-f4a9-48b6-a1e2-c168c29d9503": {
+      "ProjectGuid": "23c19b94-f4a9-48b6-a1e2-c168c29d9503",
+      "DisplayName": "ConditionalLibrary",
+      "ColorIndex": 3
+    },
+    "ff21459c-bafb-411a-98e0-88f464d10b2d": {
+      "ProjectGuid": "ff21459c-bafb-411a-98e0-88f464d10b2d",
+      "DisplayName": "Notifications",
+      "ColorIndex": 4
+    },
+    "bcaed30c-3ced-41f3-b32c-1326b9d63324": {
+      "ProjectGuid": "bcaed30c-3ced-41f3-b32c-1326b9d63324",
+      "DisplayName": "Utilities",
+      "ColorIndex": 5
+    },
+    "41bd01ad-e1af-4675-9bdd-2ebb14108c7d": {
+      "ProjectGuid": "41bd01ad-e1af-4675-9bdd-2ebb14108c7d",
+      "DisplayName": "CQRS_Autofac",
+      "ColorIndex": 6
+    },
+    "3797c7d0-12c2-4f5e-9986-f944fe780b18": {
+      "ProjectGuid": "3797c7d0-12c2-4f5e-9986-f944fe780b18",
+      "DisplayName": "EF_Repository_UnitTests",
+      "ColorIndex": 7
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "Miscellaneous Files",
+      "ColorIndex": -1
+    }
+  },
+  "NextColorIndex": 8
+}

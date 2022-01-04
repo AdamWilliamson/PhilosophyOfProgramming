@@ -1,0 +1,11 @@
+/CQRS_UnitTests/bin/Debug/net5.0
+/CQRS_UnitTests/bin/Debug/net6.0
+/CQRS_UnitTests/obj/Debug/net5.0
+/CQRS_UnitTests/obj/Debug/net6.0
+net6.0
+netcoreapp2.0
+net5.0-windows
+obj
+net5.0
+MSTest.TestAdapter.2.1.0
+MSTest.TestFramework.2.1.0
