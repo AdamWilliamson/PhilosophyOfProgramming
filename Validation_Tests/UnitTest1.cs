@@ -2,7 +2,6 @@ using Xunit;
 using System.Collections.Generic;
 using Validations;
 using FluentAssertions;
-using System.Linq;
 using Newtonsoft.Json;
 
 namespace Validation_Tests
@@ -21,40 +20,36 @@ namespace Validation_Tests
     {
         public TestValidator(Repository repo)
         {
-            //Describe(x => x.Number)
-            //    .IsEqualTo(0).When((context, instance) => instance.Number == 0);
-            //Describe(x => x.Number)
-            //    .IsEqualTo(0).WithMessage("get yourself some hot bitches");
-
-            Include(new TestValidatorToInclude(repo));
+            Describe(x => x.Number)
+                .IsEqualTo(0).When((context, instance) => instance.Number == 0).WithMessage("get yourself some hot bitches")
+                .Custom("Value is Required", (value) => value == 0, "Is Required").SetVital()
+                .Custom((value) => value >= 100, "Must be Less than 100");
 
             Scope(
                 (context, instance) => { return repo.Get(instance.Number); },
                 (scopeData) => 
                 {
-                    //Describe(x => x.Number).IsEqualTo(5);
                     Describe(x => x.Number)
-                        .IsEqualTo(
-                            scopeData.To(
-                                (data) => data.Number + 1, 
-                                "Must be equal to number plus 1"
-                            )
-                        );
+                        .IsEqualTo(scopeData.To((data) => data.Number + 1, "Must be equal to number plus 1"));
                 }
             );
-        }
-    }
 
-    public class TestValidatorToInclude : AbstractValidator<TestClassToValidate>
-    {
-        public TestValidatorToInclude(Repository repo)
-        {
-            //Describe(x => x.Number)
-            //    .IsEqualTo(0);
-            //Describe(x => x.Number)
-            //    .IsVitallyEqualTo(0);
-            //Describe(x => x.Number)
-            //    .IsEqualTo(0);
+            When(
+                "When Integer is 5",
+                (context, instance) => instance.Integer == 5,
+                () => {
+                    Describe(x => x.String).IsEqualTo("Bitch Please");
+                }
+            );
+
+            ScopeWhen(
+                "When Integer is 5",
+                (context, instance) => instance.Integer == 5,
+                (context, instance) => { return repo.Get(instance.Number); },
+                (scopeData) => {
+                    Describe(x => x.String).IsEqualTo(scopeData.To((data) => data.Number + 1, "Must be equal to number plus 1"));
+                }
+            );
         }
     }
 
@@ -85,19 +80,6 @@ namespace Validation_Tests
             var result = JsonConvert.SerializeObject(description);
             result.Should().Contain("Number");
             result.Should().Contain("Must equal to {value}");
-        }
-    }
-
-    public static class ValidationTestExtensions
-    {
-        public static List<ValidationError> GetErrorsForField(this ValidationResult? results, string fieldName)
-        {
-            return results?.GetErrors()[fieldName] ?? new List<ValidationError>();
-        }
-
-        public static bool ContainsError(this ValidationResult? results, string fieldName, string error)
-        {
-            return results?.GetErrorsForField(fieldName)?.Any(e => e.Error == error) ?? false;
         }
     }
 }

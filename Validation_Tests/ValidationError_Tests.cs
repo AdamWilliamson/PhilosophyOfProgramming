@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FluentAssertions;
+using Validations;
+using Validations.Internal;
 using Xunit;
 
 namespace Validations_Tests
@@ -10,9 +8,15 @@ namespace Validations_Tests
     public class ValidationError_Tests
     {
         [Fact]
-        public void Test1()
+        public void MessageAndFatality_AreSet()
         {
-            Assert.Fail("Incomplete");
+            // Arrange
+            var error = new ValidationError("I am an error", true);
+
+            // Act
+            // Assert
+            error.Error.Should().Be("I am an error");
+            error.IsFatal.Should().BeTrue();
         }
     }
 }

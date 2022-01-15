@@ -10,9 +10,9 @@ namespace Validations.Scopes
 
     public class ScopedData<TPassThrough, TResponse> : IScopedData
     {
-        public Func<TPassThrough, TResponse> PassThroughFunction { get; set; }
-        public string Description { get; internal set; }
-        public TPassThrough? Result { get; internal set; }
+        private Func<TPassThrough, TResponse> PassThroughFunction { get; }
+        private string Description { get; }
+        private TPassThrough? Result { get; }
 
         public ScopedData(
             string description,

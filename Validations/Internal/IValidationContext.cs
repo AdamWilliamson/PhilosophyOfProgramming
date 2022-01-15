@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Validations
+namespace Validations.Internal
 {
-    public interface IValidationContext 
+    public interface IValidationContext
     {
         Dictionary<string, List<ValidationError>> GetErrors();
         void AddError(string property, string message, bool fatal = false);
@@ -16,7 +16,7 @@ namespace Validations
         private readonly Dictionary<string, List<ValidationError>> Errors = new();
         protected string? CurrentProperty { get; set; }
 
-        public ValidationContext(){  }
+        public ValidationContext() { }
 
         public void SetCurrentProperty(string property) { CurrentProperty = property; }
 
@@ -40,6 +40,11 @@ namespace Validations
 
         public void AddError(string message, bool fatal = false)
         {
+            if (string.IsNullOrWhiteSpace(CurrentProperty))
+            {
+                throw new InvalidOperationException("Current Property Empty");
+            }
+
             var property = CurrentProperty ?? "";
             AddError(property, message, fatal);
         }

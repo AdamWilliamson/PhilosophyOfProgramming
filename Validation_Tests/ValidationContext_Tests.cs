@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using FluentAssertions;
+using System;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Validations;
+using Validations.Internal;
 using Xunit;
 
 namespace Validations_Tests
@@ -10,9 +10,32 @@ namespace Validations_Tests
     public class ValidationContext_Tests
     {
         [Fact]
-        public void Test1()
+        public void ValidationContextAddsErrors()
         {
-            Assert.Fail("Incomplete");
+            // Arrange
+            var context = new ValidationContext<AllFieldTypesDto>();
+
+            // Act
+            context.AddError("Field", "I am an error for field");
+            context.SetCurrentProperty("Field2");
+            context.AddError("I am an error for field2");
+
+            // Assert
+            context.GetErrors()["Field"].First().Error.Should().Be("I am an error for field");
+            context.GetErrors()["Field2"].First().Error.Should().Be("I am an error for field2");
+        }
+
+        [Fact]
+        public void ValidationContextWiothoutACurrentProperty_ThrowsWhenAddingAnError()
+        {
+            // Arrange
+            var context = new ValidationContext<AllFieldTypesDto>();
+
+            // Act
+            context.SetCurrentProperty(null);
+
+            // Assert
+            FluentActions.Invoking(() => context.AddError("I am an error for field2")).Should().Throw<InvalidOperationException>();
         }
     }
 }

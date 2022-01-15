@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FluentAssertions;
+using Validations.Scopes;
 using Xunit;
 
 namespace Validations_Tests.Scopes
@@ -10,9 +7,12 @@ namespace Validations_Tests.Scopes
     public class ScopedData_Tests
     {
         [Fact]
-        public void Test1()
+        public void ScopedDataCanExecuteTheScopeAndStoresTheDescription()
         {
-            Assert.Fail("Incomplete");
+            var scopeData = new ScopedData<int, int>("Description", (x) => x, 5);
+
+            scopeData.Describe().Should().Be("Description");
+            scopeData.GetValue().Should().Be(5);
         }
     }
 }

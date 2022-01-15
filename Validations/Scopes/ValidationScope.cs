@@ -1,50 +1,54 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Validations.Internal;
 
 namespace Validations.Scopes
 {
-    // Scope of Rules.
-    // Useful for both Knowing what threads to use.
-    // Also wha information needs to be shared.
-    public class ValidationScope<T>
+    public class ValidationScope<TValidationType> 
     {
-        private List<IChildScope<T>> ChildScope = new();
-        private List<IFieldChainValidator<T>> fieldChainValidators = new();
+        private List<IChildScope<TValidationType>> ChildScope = new();
+        private List<IFieldChainValidator<TValidationType>> fieldChainValidators = new();
 
-        public ValidationScope() { }
+        IChildScope<TValidationType>? currentScope = null;
 
-        public void AddScope(IChildScope<T> scope)
+        public void SetExecutingScope(IChildScope<TValidationType> scope)
         {
-            ChildScope.Add(scope);
+            currentScope = scope;
         }
 
-        public FieldChainValidator<T, TResult> CreateFieldChainValidator<TResult>(Expression<Func<T, TResult>> property)
+        public void AddScope(IChildScope<TValidationType> scope)
+        {
+            if (currentScope == null) ChildScope.Add(scope);
+            else currentScope.AddScope(scope);
+        }
+
+        public IFieldChainValidator<TValidationType> CreateFieldChainValidator<TResult>(Expression<Func<TValidationType, TResult>> property)
         {
             var existing = fieldChainValidators.Find(x => x.Matches(property));
 
-            if (existing is FieldChainValidator<T, TResult> converted)
+            if (existing is FieldChainValidator<TValidationType, TResult> converted)
             {
                 return converted;
             }
 
-            var validator = new FieldChainValidator<T, TResult>(property);
+            var validator = new FieldChainValidator<TValidationType, TResult>(property);
             fieldChainValidators.Add(validator);
 
             return validator;
         }
 
-        public List<IFieldChainValidator<T>> GetFieldValidators()
+        public List<IFieldChainValidator<TValidationType>> GetFieldValidators()
         {
             return fieldChainValidators;
         }
 
-        public List<IChildScope<T>> GetScopes()
+        public List<IChildScope<TValidationType>> GetScopes()
         {
             return ChildScope;
         }
 
-        public void Include(ValidationScope<T> scope)
+        public void Include(ValidationScope<TValidationType> scope)
         {
             foreach (var fieldvalidation in scope.GetFieldValidators())
             {
@@ -67,6 +71,11 @@ namespace Validations.Scopes
                 {
                     fieldChainValidators.Add(fieldvalidation);
                 }
+            }
+
+            foreach(var childScope in scope.GetScopes())
+            {
+                this.AddScope(childScope);
             }
         }
     }

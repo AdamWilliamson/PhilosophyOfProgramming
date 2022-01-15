@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Validations.Internal;
 using Validations.Scopes;
 using Validations.Validations;
 
@@ -7,7 +8,7 @@ namespace Validations
 {
     public static class FieldChainValidatorExtensions
     {
-        public static FieldChainValidator<T, TResult> When<T, TResult>(this FieldChainValidator<T, TResult> chain, Func<IValidationContext, T, bool> validateWhenTrue)
+        public static IFieldDescriptor<TClassType, TResult> When<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, Func<IValidationContext, TClassType, bool> validateWhenTrue)
             where TResult : IComparable
         {
             var lastValidation = chain.GetValidations().LastOrDefault();
@@ -17,28 +18,28 @@ namespace Validations
                 _ = chain.GetValidations().Remove(lastValidation);
                 var validationPieces = lastValidation?.GetAllValidations().ToArray() ?? Array.Empty<IValidation>();
 
-                chain.AddValidator(new WhenValidationWrapper<T>(validateWhenTrue, validationPieces));
+                chain.AddValidator(new WhenValidationWrapper<TClassType>(validateWhenTrue, validationPieces));
             }
 
             return chain;
         }
 
-        public static FieldChainValidator<T, TResult> IsVitallyEqualTo<T, TResult>(this FieldChainValidator<T, TResult> chain, TResult value)
+        public static IFieldDescriptor<TClassType, TResult> IsVitallyEqualTo<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, TResult value)
             where TResult : IComparable
         {
-            chain.AddValidator(new ValidationWrapper<T>(new EqualityValidation(value, true)));
+            chain.AddValidator(new ValidationWrapper<TClassType>(new EqualityValidation(value, true)));
             return chain;
         }
 
-        public static FieldChainValidator<T, TResult> IsEqualTo<T, TResult>(this FieldChainValidator<T, TResult> chain, TResult value)
+        public static IFieldDescriptor<TClassType, TResult> IsEqualTo<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, TResult value)
             where TResult : IComparable
         {
-            chain.AddValidator(new ValidationWrapper<T>(new EqualityValidation(value, false)));
+            chain.AddValidator(new ValidationWrapper<TClassType>(new EqualityValidation(value, false)));
             return chain;
         }
 
-        public static FieldChainValidator<TDataType, TResult> IsEqualTo<TDataType, TResult>(
-            this FieldChainValidator<TDataType, TResult> chain,
+        public static IFieldDescriptor<TDataType, TResult> IsEqualTo<TDataType, TResult>(
+            this IFieldDescriptor<TDataType, TResult> chain,
             IScopedData scopedData
         )
             where TResult : IComparable
@@ -47,18 +48,17 @@ namespace Validations
             return chain;
         }
 
-        public static FieldChainValidator<T, TResult> WithMessage<T, TResult>(this FieldChainValidator<T, TResult> chain, string message)
+        public static IFieldDescriptor<TClassType, TResult> WithMessage<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, string message)
         {
             chain.GetValidations().Last().SetMessageTemplate(message);
             return chain;
         }
 
-        public static FieldChainValidator<T, TResult> Custom<T, TResult>(this FieldChainValidator<T, TResult> chain, Action<IValidationContext, T?> custom)
-            where T: class
+        public static IFieldDescriptor<T, TResult> Custom<T, TResult>(this IFieldDescriptor<T, TResult> chain, Action<IValidationContext, TResult?> custom)
         {
             if (custom == null) throw new ArgumentNullException(nameof(custom));
 
-            chain.AddValidator(new ValidationWrapper<T>(new CustomValidation<T>(custom)));
+            chain.AddValidator(new ValidationWrapper<T>(new CustomValidation<TResult>(custom)));
             return chain;
         }
     }

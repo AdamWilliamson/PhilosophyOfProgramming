@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using Validations.Internal;
 using Validations.Scopes;
 
 namespace Validations
@@ -13,9 +14,9 @@ namespace Validations
     {
         ValidationScope<TValidationType> parentScope = new();
 
-        protected FieldChainValidator<TValidationType, TResult> Describe<TResult>(Expression<Func<TValidationType, TResult>> expr)
+        protected IFieldDescriptor<TValidationType, TFieldType> Describe<TFieldType>(Expression<Func<TValidationType, TFieldType>> expr)
         {
-            return parentScope.CreateFieldChainValidator(expr);
+            return new FieldDescriptor<TValidationType, TFieldType>(parentScope.CreateFieldChainValidator(expr));
         }
 
         protected void Scope<TPassThrough>(
@@ -26,7 +27,7 @@ namespace Validations
             parentScope.AddScope(child);
         }
 
-        public void Include(IValidator<TValidationType> validatorToInclude)
+        protected void Include(IValidator<TValidationType> validatorToInclude)
         {
             parentScope.Include(validatorToInclude.GetValidations());
         }

@@ -1,38 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
+using Validations.Internal;
 using Validations.Scopes;
 
 namespace Validations
 {
-    public class ValidationRunner<T>
+    public interface IValidationRunner<TValidationType>
     {
-        private List<IValidator<T>> Validators { get; } = new();
+        ValidationResult Validate(TValidationType obj);
+        ValidationMessage Describe();
+    }
 
-        public ValidationRunner(List<IValidator<T>> validators)
+    public class ValidationRunner<TValidationType> : IValidationRunner<TValidationType>
+    {
+        private List<IValidator<TValidationType>> Validators { get; } = new();
+
+        public ValidationRunner(List<IValidator<TValidationType>> validators)
         {
             Validators = validators;
         }
 
-        public ValidationResult Validate(T obj)
+        public ValidationResult Validate(TValidationType instance)
         {
-            var context = new ValidationContext<T>();
+            var context = new ValidationContext<TValidationType>();
 
             foreach (var validator in Validators)
             {
                 var scope = validator.GetValidations();
-
+                
                 foreach (var childScope in scope.GetScopes())
                 {
-                    childScope.Activate(context, obj);
+                    RecurseScopes(context, scope, childScope, instance);
                 }
 
-                GetErrors(obj, context, scope);
+                GetErrors(instance, context, scope);
             }
 
             return new ValidationResult(context);
         }
 
-        private static void GetErrors(T obj, ValidationContext<T> context, ValidationScope<T> scope)
+        private void RecurseScopes(
+            ValidationContext<TValidationType> context, 
+            ValidationScope<TValidationType> owningScope, 
+            IChildScope<TValidationType> currentScope,
+            TValidationType instance) 
+        {
+            owningScope.SetExecutingScope(currentScope);
+            currentScope.Activate(context, instance);
+            foreach (var childScope in currentScope.GetChildScopes())
+            {
+                RecurseScopes(context, owningScope, childScope, instance);
+            }
+        }
+
+        private void GetErrors(TValidationType obj, ValidationContext<TValidationType> context, ValidationScope<TValidationType> scope)
         {
             if (obj is null) throw new ArgumentNullException(nameof(obj));
             if (context is null) throw new ArgumentNullException(nameof(context));
@@ -58,7 +79,7 @@ namespace Validations
 
         public ValidationMessage Describe()
         {
-            var context = new ValidationContext<T>();
+            var context = new ValidationContext<TValidationType>();
             var scopeMessages = new List<ValidationMessage>();
 
             foreach (var validator in Validators)
@@ -70,13 +91,13 @@ namespace Validations
                     childScope.Describe(context); //.Activate(context,).Action.Invoke(context, obj);
                 }
 
-                scopeMessages.Add(GetDescriptions(context, scope));
+                scopeMessages.AddRange(GetDescriptions(context, scope));
             }
 
-            return new ValidationMessage(scopeMessages);
+            return new ValidationMessage(nameof(ValidationRunner<TValidationType>), scopeMessages);
         }
 
-        private static ValidationMessage GetDescriptions(ValidationContext<T> context, ValidationScope<T> scope)
+        private List<ValidationMessage> GetDescriptions(ValidationContext<TValidationType> context, ValidationScope<TValidationType> scope)
         {
             if (context is null) throw new ArgumentNullException(nameof(context));
             if (scope is null) throw new ArgumentNullException(nameof(scope));
@@ -86,7 +107,7 @@ namespace Validations
             var fieldValidators = scope.GetFieldValidators();
             foreach (var fieldValidator in fieldValidators)
             {
-                var fieldMessageGroup = new ValidationMessage(fieldValidator.Property);
+                var fieldMessageGroup = new ValidationMessage(null, fieldValidator.Property);
                 messages.Add(fieldMessageGroup);
 
                 context.SetCurrentProperty(fieldValidator.Property);
@@ -101,7 +122,7 @@ namespace Validations
                 }
             }
 
-            return new ValidationMessage(messages);
+            return messages;
         }
     }
 }

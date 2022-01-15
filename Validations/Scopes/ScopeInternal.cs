@@ -11,7 +11,7 @@ namespace Validations.Scopes
             Result = result;
         }
 
-        public TPassThrough? Result { get; }
+        protected TPassThrough? Result { get; }
 
         public ScopedData<TPassThrough, TResponse> To<TResponse>(
             Func<TPassThrough, TResponse> func,

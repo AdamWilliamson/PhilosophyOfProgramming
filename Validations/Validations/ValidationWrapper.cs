@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Validations.Internal;
 
 namespace Validations.Validations
 {
@@ -14,25 +15,26 @@ namespace Validations.Validations
     public class ValidationWrapper<T> : IValidationWrapper<T>
     {
         protected List<IValidation> validations = new();
-        protected string message = "";
+        protected string? message = null;
 
         public virtual ValidationMessage MessageTemplate
         {
             get
             {
-                var msg = message;
-                var children = new List<ValidationMessage>();
-
-                if (validations.Count == 1)
+                if (this.validations == null || validations.Count == 0) 
                 {
-                    msg = validations.First().MessageTemplate;
+                    return new ValidationMessage(string.Empty, message);
+                }
+                else if (validations.Count == 1)
+                {
+                    var validator = validations.First();
+                    return new ValidationMessage(validator.Name, validator.MessageTemplate);
                 }
                 else
                 {
-                    children = validations.Select(x => new ValidationMessage(x.MessageTemplate)).ToList();
+                    var children = validations.Select(x => new ValidationMessage(x.Name, x.MessageTemplate)).ToList();
+                    return new ValidationMessage(children);
                 }
-
-                return new ValidationMessage(message, children);
             }
         }
 
