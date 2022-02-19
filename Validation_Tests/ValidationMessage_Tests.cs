@@ -14,16 +14,17 @@ namespace Validations_Tests
         [Fact]
         public void SettingMessageAndHavingAChid_StoresThem()
         {
+            Assert.Fail("Setup Invalid Maybe?");
             // Arrange
-            var msg = new ValidationMessage("FakeParentValidator", "Message", new List<ValidationMessage>()
-            {
-                new ValidationMessage("FakeChildValidator", "Child Message")
-            });
+            //var msg = new ValidationMessage("FakeParentValidator", "Message", new List<ValidationMessage>()
+            //{
+            //    new ValidationMessage("FakeChildValidator", "Child Message")
+            //});
 
-            //Act
-            //Assert3
-            msg.Message.Should().Be("Message");
-            msg.Children.Count.Should().Be(1);
+            ////Act
+            ////Assert3
+            //msg.Error.Should().Be("Message");
+            //msg.Children.Count.Should().Be(1);
         }
     }
 }

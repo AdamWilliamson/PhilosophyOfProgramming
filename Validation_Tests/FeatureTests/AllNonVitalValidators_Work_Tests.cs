@@ -56,11 +56,11 @@ namespace Validations_Tests
             // Assert
             using (new AssertionScope())
             {
-                results.GetErrors().Keys.Count.Should().Be(fieldCount);
-                results.GetErrors().Keys.Should().BeEquivalentTo(
+                results.FieldErrors.Count.Should().Be(fieldCount);
+                results.FieldErrors.Should().BeEquivalentTo(
                     typeof(AllFieldTypesDto).GetProperties().Select(f => f.Name)
                 );
-                results.GetErrors().Values.Select(x => x.Count).Should().OnlyContain(x => x > 0);
+                results.FieldErrors.Select(x => x.Errors.Count()).Should().OnlyContain(x => x > 0);
             }
         }
     }

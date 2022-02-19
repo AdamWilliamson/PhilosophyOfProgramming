@@ -13,7 +13,7 @@ namespace Validations_Tests.Validations
     {
         public WhenTestingValidator()
         {
-            Describe(x => x.Integer).IsEqualTo(6).When((context, instance) => instance.Integer == 5);
+            Describe(x => x.Integer).IsEqualTo(6).When("Integer is 5", (context, instance) => instance.Integer == 5);
         }
     }
 
@@ -34,7 +34,7 @@ namespace Validations_Tests.Validations
             var results = runner.Validate(instance);
 
             //Assert
-            results.GetErrors().Count.Should().Be(1);
+            results.FieldErrors.Count.Should().Be(1);
         }
 
         [Fact]
@@ -52,7 +52,7 @@ namespace Validations_Tests.Validations
             var results = runner.Validate(instance);
 
             //Assert
-            results.GetErrors().Count.Should().Be(0);
+            results.FieldErrors.Count.Should().Be(0);
         }
     }
 }

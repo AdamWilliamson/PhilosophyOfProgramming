@@ -48,7 +48,7 @@ namespace Validations_Tests.Validations
             var results = runner.Validate(instance);
 
             //Assert
-            results.GetErrors().Count.Should().Be(0);
+            results.FieldErrors.Count.Should().Be(0);
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace Validations_Tests.Validations
             var results = runner.Validate(instance);
 
             //Assert
-            results.GetErrors().Count.Should().Be(6);
+            results.FieldErrors.Count.Should().Be(6);
         }
     }
 }

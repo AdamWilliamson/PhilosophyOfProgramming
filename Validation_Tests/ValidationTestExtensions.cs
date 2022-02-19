@@ -9,7 +9,7 @@ namespace Validation_Tests
     {
         public static List<ValidationError> GetErrorsForField(this ValidationResult? results, string fieldName)
         {
-            return results?.GetErrors()[fieldName] ?? new List<ValidationError>();
+            return results?.FieldErrors.Single(o => o.Property == fieldName).Errors ?? new List<ValidationError>();
         }
 
         public static bool ContainsError(this ValidationResult? results, string fieldName, string error)

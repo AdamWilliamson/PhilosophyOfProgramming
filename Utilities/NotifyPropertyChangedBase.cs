@@ -9,14 +9,14 @@ namespace Utilities
     public abstract class NotifyPropertyChangedBase : INotifyPropertyChanged
     {
         [field: NonSerialized]
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        protected virtual void OnPropertyChanged(object o, [CallerMemberName] string propertyName = null)
+        protected virtual void OnPropertyChanged(object o, [CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(o, new PropertyChangedEventArgs(propertyName));
         }
@@ -26,7 +26,7 @@ namespace Utilities
             PropertyChanged?.Invoke(o, args);
         }
 
-        protected bool Set<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        protected bool Set<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(storage, value))
             {

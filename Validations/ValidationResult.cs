@@ -3,15 +3,16 @@ using Validations.Internal;
 
 namespace Validations
 {
+    public class FieldErrors
+    {
+        public string Property { get; set; } = string.Empty;
+        public List<ValidationError> Errors { get; set; } = new();
+    }
+
     public class ValidationResult
     {
-        private Dictionary<string, List<ValidationError>> Errors { get; } = new();
+        public List<FieldErrors> FieldErrors { get; } = new();
 
-        public ValidationResult(IValidationContext context) { Errors = context.GetErrors(); }
-
-        public Dictionary<string, List<ValidationError>> GetErrors()
-        {
-            return Errors;
-        }
+        public ValidationResult(List<FieldErrors> errors) { FieldErrors = errors; }
     }
 }

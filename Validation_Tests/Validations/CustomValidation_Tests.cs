@@ -34,8 +34,8 @@ namespace Validations_Tests.Validations
             var results = runner.Validate(instance);
 
             //Assert
-            results.GetErrors().Keys.Should().Contain(nameof(AllFieldTypesDto.Integer));
-            results.GetErrors().SelectMany(c => c.Value).SelectMany(v => v.Error).Should().Contain("Something Bad");
+            results.FieldErrors.Select(f => f.Property).Should().Contain(nameof(AllFieldTypesDto.Integer));
+            results.FieldErrors.SelectMany(v => v.Errors.Select(e => e.Error)).Should().Contain("Something Bad");
         }
     }
 }

@@ -17,7 +17,8 @@ namespace Validations_Tests.Scopes
             var fieldChainValidator = scope.CreateFieldChainValidator(x => x.Integer);
             scopeToInclude.CreateFieldChainValidator(x => x.String);
 
-            scope.AddScope(new PassThroughChildScope<AllFieldTypesDto, int>(
+            scope.AddChildScope(new PassThroughChildScope<AllFieldTypesDto, int>(
+                scope,
                 (x, i) => 4,
                 (scopedData) => { }
             ));
@@ -26,7 +27,7 @@ namespace Validations_Tests.Scopes
             //Assert
             fieldChainValidator.Should().NotBeNull();
             scope.GetFieldValidators().Count.Should().Be(2);
-            scope.GetScopes().Should().NotBeEmpty();
+            scope.GetChildScopes().Should().NotBeEmpty();
         }
     }
 }

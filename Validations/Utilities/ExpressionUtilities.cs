@@ -39,7 +39,9 @@ namespace Validations.Utilities
                     path.Insert(0, ".");
                 }
                 path.Insert(0, memberExpression.Member.Name);
+#pragma warning disable CS8604 // Possible null reference argument.
                 memberExpression = GetMemberExpression(memberExpression.Expression);
+#pragma warning restore CS8604 // Possible null reference argument.
             }
             while (memberExpression != null);
             return path.ToString();

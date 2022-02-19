@@ -26,7 +26,8 @@ namespace POP.NSubstitute_Builders
                     {
                         var genMethod = method.MakeGenericMethod(p.ParameterType);
                         var inited = genMethod.Invoke(null, null);
-                        createdParams.Add(inited);
+                        if (inited != null)
+                            createdParams.Add(inited);
                     }
                     catch
                     {

@@ -10,13 +10,15 @@ namespace Validations_Tests
         [Fact]
         public void MessageAndFatality_AreSet()
         {
-            // Arrange
-            var error = new ValidationError("I am an error", true);
+            //// Arrange
+            //var error = new ValidationError("I am an error", true);
 
-            // Act
-            // Assert
-            error.Error.Should().Be("I am an error");
-            error.IsFatal.Should().BeTrue();
+            //// Act
+            //// Assert
+            //error.Error.Should().Be("I am an error");
+            //error.IsFatal.Should().BeTrue();
+
+            Assert.Fail("fsdfsd");
         }
     }
 }

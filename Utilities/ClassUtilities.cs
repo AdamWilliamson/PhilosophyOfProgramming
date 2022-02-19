@@ -8,10 +8,10 @@ namespace Utilities
     {
         public static Dictionary<string, string> ToDictionary<T>(T obj)
         {
-            return ToRecursiveDictionary(obj, null).ToDictionary(prop => prop.Item1, prop => prop.Item2);
+            return ToRecursiveDictionary(obj).ToDictionary(prop => prop.Item1, prop => prop.Item2);
         }
 
-        private static (string, string)[] ToRecursiveDictionary<T>(T obj, string append)
+        private static (string, string)[] ToRecursiveDictionary<T>(T obj, string append = "")
         {
             var propAppend = (string.IsNullOrEmpty(append)) ? "" : $"{append}.";
             if (obj == null) return new (string, string)[] { };
@@ -23,7 +23,7 @@ namespace Utilities
                     if (prop.PropertyType.IsAssignableFrom(typeof(string)))
                     {
                         return new (string, string)[] {
-                            (propAppend + prop.Name, prop.GetValue(obj, null)?.ToString())
+                            (propAppend + prop.Name, prop.GetValue(obj, null)?.ToString() ?? "")
                         };
                     }
                     else if (prop.PropertyType.IsClass)
@@ -33,7 +33,7 @@ namespace Utilities
                     else
                     {
                         return new (string, string)[] {
-                            (propAppend + prop.Name, prop.GetValue(obj, null)?.ToString())
+                            (propAppend + prop.Name, prop.GetValue(obj, null)?.ToString() ?? "")
                         };
                     }
                 })

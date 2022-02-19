@@ -20,7 +20,9 @@ namespace Validations_Tests.Scopes
         {
             // Arrange
             ScopedData<int,int>? internalScope = null;
+            var scope = new ValidationScope<ValidationType>();
             var passthrough = new PassThroughChildScope<ValidationType, int>(
+                scope,
                 (validationType, integer) => { return 5; },
                 (scopedInternal) =>
                 {

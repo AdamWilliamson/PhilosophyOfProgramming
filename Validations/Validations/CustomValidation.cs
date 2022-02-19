@@ -1,30 +1,54 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Validations.Internal;
 
-namespace Validations.Validations
+namespace Validations.Validations;
+
+public class CustomContext
 {
-    public class CustomValidation<T> : IValidation
-     //   where T : class
+    private readonly List<(string, bool)> errors = new();
+        
+    public CustomContext() { }
+
+    public List<(string, bool)> GetErrors() { return errors; }
+
+    public void AddError(string message, bool fatal = false)
     {
-        public string Name { get; } = "Custom";
-        public string DescriptionTemplate { get; } = "";
-        public string MessageTemplate { get; } = "Custom";
-        public Action<IValidationContext, T?> Custom { get; }
+        errors.Add(new (message, fatal));
+    }
+}
 
-        public CustomValidation(Action<IValidationContext, T?> custom)
+public class CustomValidation<T> : IValidation
+{
+    public string Name { get; } = "Custom";
+    public string DescriptionTemplate { get; } = "";
+    public string MessageTemplate { get; } = "Custom";
+    public Action<CustomContext, T?> Custom { get; }
+
+    public CustomValidation(Action<CustomContext, T?> custom)
+    {
+        Custom = custom;
+    }
+
+    public ValidationError? Validate<TOther>(ValidationContext<TOther> context, object? value)
+    {
+        if (value is T converted)
         {
-            Custom = custom;
+            var customContext = new CustomContext();
+            Custom.Invoke(customContext, converted);
+
+            return new ValidationError("Custom", false, new())
+            {
+                ChildErrors = customContext.GetErrors().Select(e => new ValidationError(e.Item1, e.Item2, new())).ToList()
+            };
         }
 
-        public void Validate<TOther>(ValidationContext<TOther> context, object? value)
-        {
-            if (value is T converted)
-                Custom.Invoke(context, converted);
-        }
+        return null;
+    }
 
-        public ValidationMessage Describe<TOther>(ValidationContext<TOther> context)
-        {
-            return new ValidationMessage("Custom", DescriptionTemplate);
-        }
+    public ValidationMessage Describe<TOther>(ValidationContext<TOther> context)
+    {
+        return new ValidationMessage("Custom", DescriptionTemplate, new());
     }
 }

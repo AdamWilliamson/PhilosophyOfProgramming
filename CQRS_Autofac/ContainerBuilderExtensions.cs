@@ -7,6 +7,7 @@ namespace CQRS_Autofac
     public static class ContainerBuilderExtensions
     {
         public static void Register<TQueryHandler, TQuery>(this ContainerBuilder builder)
+            where TQueryHandler : notnull
         {
             var singleQueryType = typeof(TQueryHandler).GetInterface(typeof(IQueryHandler<,>).Name);
             var listQueryType = typeof(TQueryHandler).GetInterface(typeof(IListQueryHandler<,>).Name);

@@ -21,7 +21,8 @@ namespace Utilities
         protected virtual PropertyChangedEventHandler RenamePropForward(string name)
         {
             return (sender, args) => {
-                ForwardPropertyChange(sender, new PropertyChangedEventArgs(name));
+                if (sender != null)
+                    ForwardPropertyChange(sender, new PropertyChangedEventArgs(name));
             };
         }
     }

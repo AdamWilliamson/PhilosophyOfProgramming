@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using System;
-using Validations;
+using System.Collections.Generic;
 using Validations.Internal;
 using Validations.Scopes;
 using Validations.Validations;
@@ -14,6 +14,13 @@ namespace Validations_Tests
         public override string DescriptionTemplate { get; } = "Is Same";
         public override string MessageTemplate { get; } = "{value} is not equal to {value}";
         public int Value { get; }
+        protected override Dictionary<string, string> GetTokenValues()
+        {
+            return new()
+            {
+                { "value", Value.ToString() ?? ScopedData?.GetValue()?.ToString() ?? "Unknown" }
+            };
+        }
 
         public TestValidation(int value, bool isfatal) : base(isfatal)
         {
@@ -34,10 +41,11 @@ namespace Validations_Tests
         public void AddingAValidator_Works()
         {
             // Arrange
-            var fieldChainValidator = new FieldChainValidator<AllFieldTypesDto, int>(x => x.Integer);
-
+            var owningScope = new ValidationScope<AllFieldTypesDto>();
+            var fieldChainValidator = new FieldDescriptor<AllFieldTypesDto, int>(owningScope, x => x.Integer);
+            
             // Act
-            fieldChainValidator.AddValidator(new ValidationWrapper<AllFieldTypesDto>(new TestValidation(5, false)));
+            fieldChainValidator.AddValidator(new ValidationWrapper<AllFieldTypesDto>(owningScope, new TestValidation(5, false)));
 
             // Assert
             fieldChainValidator.GetValidations().Count.Should().Be(1);
@@ -47,7 +55,8 @@ namespace Validations_Tests
         public void MatchingAValidator_Works()
         {
             // Arrange
-            var fieldChainValidator = new FieldChainValidator<AllFieldTypesDto, int>(x => x.Integer);
+            var owningScope = new ValidationScope<AllFieldTypesDto>();
+            var fieldChainValidator = new FieldDescriptor<AllFieldTypesDto, int>(owningScope, x => x.Integer);
 
             // Act
             // Assert

@@ -1,4 +1,5 @@
-﻿using Validations.Internal;
+﻿using System.Collections.Generic;
+using Validations.Internal;
 using Validations.Scopes;
 
 namespace Validations.Validations
@@ -8,7 +9,7 @@ namespace Validations.Validations
         string Name { get; }
         string MessageTemplate { get; }
         string DescriptionTemplate { get; }
-        void Validate<T>(ValidationContext<T> context, object? value);
+        ValidationError? Validate<T>(ValidationContext<T> context, object? value);
         ValidationMessage Describe<T>(ValidationContext<T> context);
     }
 
@@ -17,6 +18,8 @@ namespace Validations.Validations
         public abstract string Name { get; }
         public abstract string MessageTemplate { get; }
         public abstract string DescriptionTemplate { get; }
+        protected abstract Dictionary<string, string> GetTokenValues();
+
         protected bool isfatal = false;
         public IScopedData? ScopedData = null;
         protected ValidationBase(bool isfatal)
@@ -39,25 +42,19 @@ namespace Validations.Validations
             return default;
         }
 
-        public virtual void Validate<T>(ValidationContext<T> context, object? value)
+        public virtual ValidationError? Validate<T>(ValidationContext<T> context, object? value)
         {
             if (Test(GetValue<T, TFieldType>(context), value))
             {
-                return;
+                return null;
             }
 
-            context.AddError(MessageTemplate, isfatal);
+            return new ValidationError(MessageTemplate, isfatal, GetTokenValues());
         }
 
         public virtual ValidationMessage Describe<T>(ValidationContext<T> context)
         {
-            var data = "";
-            if (ScopedData != null)
-            {
-                data = ScopedData.Describe();
-            }
-
-            return new ValidationMessage(Name, DescriptionTemplate + data);
+            return new ValidationMessage(Name, DescriptionTemplate, GetTokenValues());
         }
 
         public abstract bool Test(TFieldType? scopedValue, object? instanceValue);

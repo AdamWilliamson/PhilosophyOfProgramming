@@ -1,5 +1,6 @@
 ﻿using System;
 using Validations;
+using Validations.Internal;
 
 namespace Validations_Tests
 {

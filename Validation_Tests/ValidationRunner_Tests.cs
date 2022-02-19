@@ -31,7 +31,7 @@ namespace Validations_Tests
             var results = runner.Validate(new AllFieldTypesDto());
 
             // Assert
-            results.GetErrors().Keys.Count.Should().Be(1);
+            results.FieldErrors.Count.Should().Be(1);
         }
 
         [Fact]
@@ -46,8 +46,8 @@ namespace Validations_Tests
             var results = runner.Describe();
 
             // Assert
-            results.Message.Should().BeNull();
-            results.Children.First().Message.Should().Be("Integer");
+            results.Error.Should().BeNull();
+            results.Children.First().Error.Should().Be("Integer");
             results.Children.First().Children.First().Validator.Should().Be("Equal To");
         }
     }

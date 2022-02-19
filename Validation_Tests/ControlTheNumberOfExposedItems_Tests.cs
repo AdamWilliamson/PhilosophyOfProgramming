@@ -40,7 +40,7 @@ namespace Validations_Tests
             // Arrange
             var validPublicNames = new string[]
             {
-                nameof(AbstractValidator<AllFieldTypesDto>.GetValidations),
+                nameof(IValidator<AllFieldTypesDto>.GetScope),
             };
 
             var validProtectedNames = new string[]
@@ -68,12 +68,12 @@ namespace Validations_Tests
             // Arrange
             var validPublicNames = new string[]
             {
-                "get_" + nameof(IFieldChainValidator<AllFieldTypesDto>.Property),
-                nameof(IFieldChainValidator<AllFieldTypesDto>.Property),
-                nameof(IFieldChainValidator<AllFieldTypesDto>.Matches),
-                nameof(IFieldChainValidator<AllFieldTypesDto>.AddValidator),
-                nameof(IFieldChainValidator<AllFieldTypesDto>.GetValidations),
-                nameof(IFieldChainValidator<AllFieldTypesDto>.GetPropertyValue),
+                "get_" + nameof(IFieldDescriptor<AllFieldTypesDto>.Property),
+                nameof(IFieldDescriptor<AllFieldTypesDto>.Property),
+                nameof(IFieldDescriptor<AllFieldTypesDto>.Matches),
+                nameof(IFieldDescriptor<AllFieldTypesDto>.AddValidator),
+                nameof(IFieldDescriptor<AllFieldTypesDto>.GetValidations),
+                nameof(IFieldDescriptor<AllFieldTypesDto>.GetPropertyValue),
             };
 
             var validProtectedNames = new string[]
@@ -82,7 +82,7 @@ namespace Validations_Tests
                 "get_Validations"
             };
 
-            var type = typeof(FieldChainValidator<AllFieldTypesDto, int>);
+            var type = typeof(FieldDescriptor<AllFieldTypesDto, int>);
 
             // Act
             // Assert
@@ -154,9 +154,9 @@ namespace Validations_Tests
             var validPublicNames = new string[]
             {
                 nameof(ValidationScope<AllFieldTypesDto>.GetFieldValidators),
-                nameof(ValidationScope<AllFieldTypesDto>.GetScopes),
+                nameof(ValidationScope<AllFieldTypesDto>.GetChildScopes),
                 nameof(ValidationScope<AllFieldTypesDto>.Include),
-                nameof(ValidationScope<AllFieldTypesDto>.AddScope),
+                nameof(ValidationScope<AllFieldTypesDto>.AddChildScope),
                 nameof(ValidationScope<AllFieldTypesDto>.CreateFieldChainValidator)
             };
 

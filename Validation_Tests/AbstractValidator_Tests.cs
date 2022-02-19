@@ -104,7 +104,7 @@ namespace Validations_Tests
             var results = runner.Validate(new AllFieldTypesDto() { String = "Not A Number" });
 
             // Assert
-            validator.GetValidations().GetScopes().Count.Should().Be(2);
+            ((IValidator<AllFieldTypesDto>)validator).GetScope().GetChildScopes().Count.Should().Be(2);
         }
 
         [Fact]
@@ -121,7 +121,7 @@ namespace Validations_Tests
             var results = runner.Validate(new AllFieldTypesDto() { String = "Not A Number" });
 
             // Assert
-            validator.GetValidations().GetScopes().Count.Should().Be(2);
+            ((IValidator<AllFieldTypesDto>)validator).GetScope().GetChildScopes().Count.Should().Be(2);
         }
 
         [Fact]
@@ -138,7 +138,7 @@ namespace Validations_Tests
             var results = runner.Validate(new AllFieldTypesDto() { String = "Not A Number" });
 
             // Assert
-            results.GetErrors()[nameof(AllFieldTypesDto.String)].Count.Should().Be(2);
+            results.FieldErrors.Single(o => o.Property == nameof(AllFieldTypesDto.String)).Errors.Count.Should().Be(2);
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace Validations_Tests
             var results = runner.Validate(new AllFieldTypesDto() { String = "Not A Number" });
 
             // Assert
-            results.GetErrors()[nameof(AllFieldTypesDto.String)].Count.Should().Be(1);
+            results.FieldErrors.Single(o => o.Property == nameof(AllFieldTypesDto.String)).Errors.Count.Should().Be(1);
         }
 
         [Fact]
@@ -172,7 +172,7 @@ namespace Validations_Tests
             var results = runner.Validate(new AllFieldTypesDto() { String = "Not A Number" });
 
             // Assert
-            results.GetErrors()[nameof(AllFieldTypesDto.String)].Count.Should().Be(2);
+            results.FieldErrors.Single(o => o.Property == nameof(AllFieldTypesDto.String)).Errors.Count.Should().Be(2);
         }
     }
 }
