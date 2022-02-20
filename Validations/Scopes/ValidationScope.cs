@@ -42,7 +42,12 @@ namespace Validations.Scopes
         
     }
 
-    public interface IValidationScope<TValidationType> : IScope<TValidationType>
+    public interface IFieldDescriptorScope<TValidationType>
+    {
+        IFieldDescriptor<TValidationType, TFieldType> CreateFieldChainValidator<TFieldType>(Expression<Func<TValidationType, TFieldType>> property);
+    }
+
+    public interface IValidationScope<TValidationType> : IScope<TValidationType>, IFieldDescriptorScope<TValidationType>
     {
         void AddChildScope(IChildScope<TValidationType> scope);
         void AddFieldScope(IFieldScope fieldScope);

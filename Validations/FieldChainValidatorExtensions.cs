@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Validations.Internal;
 using Validations.Scopes;
@@ -6,7 +7,7 @@ using Validations.Validations;
 
 namespace Validations
 {
-    public static class FieldChainValidatorExtensions
+    public static partial class FieldChainValidatorExtensions
     {
         public static IFieldDescriptor<TClassType, TResult> When<TClassType, TResult>(
             this IFieldDescriptor<TClassType, TResult> chain, 
@@ -32,29 +33,36 @@ namespace Validations
             return chain;
         }
 
-        public static IFieldDescriptor<TClassType, TResult> IsVitallyEqualTo<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, TResult value)
-            where TResult : IComparable
-        {
-            chain.AddValidator(new ValidationWrapper<TClassType>(chain.GetCurrentScope(), new EqualityValidation(value, true)));
-            return chain;
-        }
+        //public static IFieldDescriptor<TClassType, TResult> ForEach<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain)
+        //    where TResult : IComparable
+        //{
+        //    chain.AddValidator(new ValidationWrapper<TClassType>(chain.GetCurrentScope(), new EqualityValidation(value, true)));
+        //    return chain;
+        //}
 
-        public static IFieldDescriptor<TClassType, TResult> IsEqualTo<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, TResult value)
-            where TResult : IComparable
-        {
-            chain.AddValidator(new ValidationWrapper<TClassType>(chain.GetCurrentScope(), new EqualityValidation(value, false)));
-            return chain;
-        }
+        //public static IFieldDescriptor<TClassType, TResult> IsVitallyEqualTo<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, TResult value)
+        //    where TResult : IComparable
+        //{
+        //    chain.AddValidator(new ValidationWrapper<TClassType>(chain.GetCurrentScope(), new EqualityValidation(value, true)));
+        //    return chain;
+        //}
 
-        public static IFieldDescriptor<TDataType, TResult> IsEqualTo<TDataType, TResult>(
-            this IFieldDescriptor<TDataType, TResult> chain,
-            IScopedData scopedData
-        )
-            where TResult : IComparable
-        {
-            chain.AddValidator(new ValidationWrapper<TDataType>(chain.GetCurrentScope(), new EqualityValidation(scopedData, false)));
-            return chain;
-        }
+        //public static IFieldDescriptor<TClassType, TResult> IsEqualTo<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, TResult value)
+        //    where TResult : IComparable
+        //{
+        //    chain.AddValidator(new ValidationWrapper<TClassType>(chain.GetCurrentScope(), new EqualityValidation(value, false)));
+        //    return chain;
+        //}
+
+        //public static IFieldDescriptor<TDataType, TResult> IsEqualTo<TDataType, TResult>(
+        //    this IFieldDescriptor<TDataType, TResult> chain,
+        //    IScopedData scopedData
+        //)
+        //    where TResult : IComparable
+        //{
+        //    chain.AddValidator(new ValidationWrapper<TDataType>(chain.GetCurrentScope(), new EqualityValidation(scopedData, false)));
+        //    return chain;
+        //}
 
         public static IFieldDescriptor<TClassType, TResult> WithErrorMessage<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain, string message)
         {
@@ -68,6 +76,16 @@ namespace Validations
 
             chain.AddValidator(new ValidationWrapper<T>(chain.GetCurrentScope(), new CustomValidation<TResult>(custom)));
             return chain;
+        }
+
+        public static void ForEach<TValidationType, TFieldType, TListItemType>(
+            this IFieldDescriptor<TValidationType, TFieldType> chain,
+            Action<IFieldDescriptor<TValidationType, TListItemType>> rules)
+            where TFieldType: IEnumerable<TListItemType>
+        {
+            var child = new ForEachScope<TValidationType, TFieldType, TListItemType>(chain, chain.GetCurrentScope(), rules);
+            (chain.GetCurrentScope() as ValidationScope<TValidationType>)?.AddChildScope(child);
+            //return chain;
         }
     }
 }

@@ -1,0 +1,71 @@
+﻿{
+    "fieldErrors": [
+        {
+            "property": "Integer",
+            "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                },
+                {
+                    "error": "Is not equal to 2",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        },
+        {
+            "property": "String",
+            "errors": []
+        },
+        {
+            "property": "IntegerList",
+            "errors": []
+        },
+        {
+            "property": "IntegerList[0]",
+            "errors": []
+        },
+        {
+            "property": "IntegerList[1]",
+            "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        },
+        {
+            "property": "IntegerList[2]",
+            "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        },
+        {
+            "property": "IntegerList[3]",
+            "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        },
+        {
+            "property": "IntegerList[4]",
+            "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        }
+    ]
+}
