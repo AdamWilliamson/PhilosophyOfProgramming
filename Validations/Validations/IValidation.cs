@@ -11,6 +11,7 @@ namespace Validations.Validations
         string DescriptionTemplate { get; }
         ValidationError? Validate<T>(ValidationContext<T> context, object? value);
         ValidationMessage Describe<T>(ValidationContext<T> context);
+        void IsFatal(bool isFatal);
     }
 
     public abstract class ValidationBase<TFieldType> : IValidation
@@ -20,16 +21,22 @@ namespace Validations.Validations
         public abstract string DescriptionTemplate { get; }
         protected abstract Dictionary<string, string> GetTokenValues();
 
-        protected bool isfatal = false;
+        protected bool isFatal = false;
         public IScopedData? ScopedData = null;
-        protected ValidationBase(bool isfatal)
+
+        protected ValidationBase(bool isFatal)
         {
-            this.isfatal = isfatal;
+            this.isFatal = isFatal;
         }
-        protected ValidationBase(IScopedData value, bool isfatal)
+        protected ValidationBase(IScopedData value, bool isFatal)
         {
             ScopedData = value;
-            this.isfatal = isfatal;
+            this.isFatal = isFatal;
+        }
+
+        public void IsFatal(bool isFatal)
+        {
+            this.isFatal = isFatal;
         }
 
         protected TValue? GetValue<T, TValue>(ValidationContext<T> context)
@@ -49,12 +56,12 @@ namespace Validations.Validations
                 return null;
             }
 
-            return new ValidationError(MessageTemplate, isfatal, GetTokenValues());
+            return new ValidationError(MessageTemplate, isFatal, GetTokenValues());
         }
 
         public virtual ValidationMessage Describe<T>(ValidationContext<T> context)
         {
-            return new ValidationMessage(Name, DescriptionTemplate, GetTokenValues());
+            return new ValidationMessage(Name, DescriptionTemplate, MessageTemplate, GetTokenValues());
         }
 
         public abstract bool Test(TFieldType? scopedValue, object? instanceValue);

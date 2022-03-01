@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Validations.Internal;
@@ -78,14 +79,14 @@ namespace Validations
             return chain;
         }
 
-        public static void ForEach<TValidationType, TFieldType, TListItemType>(
-            this IFieldDescriptor<TValidationType, TFieldType> chain,
-            Action<IFieldDescriptor<TValidationType, TListItemType>> rules)
-            where TFieldType: IEnumerable<TListItemType>
-        {
-            var child = new ForEachScope<TValidationType, TFieldType, TListItemType>(chain, chain.GetCurrentScope(), rules);
-            (chain.GetCurrentScope() as ValidationScope<TValidationType>)?.AddChildScope(child);
-            //return chain;
-        }
+        //public static void ForEach<TValidationType, TListType, TListItemType>(
+        //    this IFieldDescriptor<TValidationType, TListType> chain,
+        //    Action<IFieldDescriptor<TValidationType, TListItemType>> rules)
+        //    where TValidationType: class
+        //    where TListType : IEnumerable<TListItemType>
+        //{
+        //    //var child = new ForEachScope<TValidationType, TListItemType>(chain, chain.GetCurrentScope(), rules);
+        //    //(chain.GetCurrentScope() as ValidationScope<TValidationType>)?.AddChildScope(child);
+        //}
     }
 }

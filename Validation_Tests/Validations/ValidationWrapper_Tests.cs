@@ -19,7 +19,7 @@ namespace Validations_Tests.Validations
         {
             // Arrange
             var owningScope = new ValidationScope<AllFieldTypesDto>();
-            var validationComponent = new EqualityValidation(5, false);
+            var validationComponent = new IsEqualToValidation(5, false);
             var wrapper = new ValidationWrapper<AllFieldTypesDto>(owningScope, validationComponent);
             var validationContext = new ValidationContext<AllFieldTypesDto>();
             var instance = new AllFieldTypesDto();

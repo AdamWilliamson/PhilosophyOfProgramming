@@ -1,27 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using Validations_Tests.Demonstration.Basic;
+using Validations_Tests.Demonstration.Moderate;
 
-namespace Validations_Tests.Demonstration
+namespace Validations_Tests.Demonstration.Advanced
 {
-    public struct ValidationStruct
-    {
-        public int Integer { get; }
-    }
-
-    public class ValidationClass
-    {
-        public int Integer { get; }
-    }
-
-    public class BasicValidatableObject
-    {
-        public int Integer { get; set; } = 0;
-        public string String { get; set; } = string.Empty;
-
-        public List<int> IntegerList { get; set; } = new() { 1, 2, 3, 4, 5 };
-        public List<ValidationClass> ItemList { get; set; } = new();
-    }
-
     public class AdvancedValidatableObject
     {
         public int Integer { get; set; } = 0;

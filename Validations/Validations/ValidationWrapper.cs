@@ -34,6 +34,7 @@ namespace Validations.Validations
 
         //TODO: See if I can refactor this out. <TOther>
         ValidationMessage Describe(ValidationContext<TValidationType> context);
+        void MakeVital();
         //IValidationScope<TValidationType> GetOwningScope();
     }
 
@@ -53,18 +54,18 @@ namespace Validations.Validations
         {
             get
             {
-                if (this.validations == null || validations.Count == 0) 
+                if (this.validations == null || validations.Count == 0)
                 {
-                    return new ValidationMessage(message, owningScope.GetValidationDetails());
+                    return new ValidationMessage("null", message, null, owningScope.GetValidationDetails(), new());
                 }
                 else if (validations.Count == 1)
                 {
                     var validator = validations.First();
-                    return new ValidationMessage(validator.Name, validator.MessageTemplate, owningScope.GetValidationDetails(), new());
+                    return new ValidationMessage(validator.Name, validator.DescriptionTemplate, validator.MessageTemplate, owningScope.GetValidationDetails(), new());
                 }
                 else
                 {
-                    var children = validations.Select(x => new ValidationMessage(x.Name, x.MessageTemplate, new ())).ToList();
+                    var children = validations.Select(x => new ValidationMessage(x.Name, x.DescriptionTemplate, x.MessageTemplate, new())).ToList();
                     return new ValidationMessage(children, owningScope.GetValidationDetails());
                 }
             }
@@ -108,6 +109,14 @@ namespace Validations.Validations
             }
 
             return new ValidationMessage(messages, owningScope.GetValidationDetails());
+        }
+
+        public void MakeVital()
+        {
+            foreach(var validation in GetAllValidations())
+            {
+                validation.IsFatal(true);
+            }
         }
     }
 }

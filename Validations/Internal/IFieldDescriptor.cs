@@ -14,6 +14,7 @@ public interface IFieldDescriptor<TValidationType, TFieldType> : IFieldDescripto
     //object? GetPropertyValue(object instance);
     //string Property { get; }
     //bool Matches<TResult>(Expression<Func<TValidationType, TResult>> action);
+    IFieldDescriptor<TValidationType, TFieldType> Vitally { get; }
 }
 
 public interface IFieldDescriptor<TValidationType>
@@ -25,6 +26,8 @@ public interface IFieldDescriptor<TValidationType>
     bool Matches<TResult>(Expression<Func<TValidationType, TResult>> action);
     IScope<TValidationType> GetCurrentScope();
     IFieldDescriptorScope<TValidationType> GetFieldDescriptorScope();
+
+    
 }
 
 internal class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<TValidationType, TFieldType>
@@ -33,6 +36,7 @@ internal class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<T
     private Expression<Func<TValidationType, TFieldType>> propertyAcessor;
     public string Property { get; }
     private readonly IValidationScope<TValidationType> validationScope;
+    private bool MakeNextVital = false;
 
     public FieldDescriptor(IValidationScope<TValidationType> validationScope, Expression<Func<TValidationType, TFieldType>> property)
     {
@@ -62,6 +66,11 @@ internal class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<T
 
     public void AddValidator(IValidationWrapper<TValidationType> validation)
     {
+        if (MakeNextVital)
+        {
+            validation.MakeVital();
+            MakeNextVital = false;
+        }
         Validations.Add(validation);
     }
 
@@ -73,5 +82,14 @@ internal class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<T
     IFieldDescriptorScope<TValidationType> IFieldDescriptor<TValidationType>.GetFieldDescriptorScope()
     {
         return validationScope as IFieldDescriptorScope<TValidationType>;
+    }
+
+    public IFieldDescriptor<TValidationType, TFieldType> Vitally 
+    { 
+        get
+        {
+            MakeNextVital = true;
+            return this;
+        } 
     }
 }

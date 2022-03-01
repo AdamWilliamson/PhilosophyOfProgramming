@@ -62,7 +62,7 @@ namespace Validations_Tests
     {
         public TestValidatorToInclude()
         {
-            Describe(x => x.String).IsVitallyEqualTo("2");
+            Describe(x => x.String).Vitally.IsEqualTo("2");
 
             Scope(
                 (context, instance) => 5,

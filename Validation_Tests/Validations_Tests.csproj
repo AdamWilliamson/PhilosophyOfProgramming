@@ -26,4 +26,17 @@
     <ProjectReference Include="..\Validations\Validations.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Demonstration\Moderate\ToJsonTest.BasicValidator_Describe_ToJson.approved.json">
+      <ParentFile>$([System.String]::Copy('%(FileName)').Split('.')[0])</ParentFile>
+      <ParentExtension>$(ProjectExt.Replace('proj', ''))</ParentExtension>
+      <DependentUpon>%(ParentFile)%(ParentExtension)</DependentUpon>
+    </None>
+    <None Update="Demonstration\Moderate\ToJsonTest.BasicValidator_Validate_ToJson.approved.json">
+      <ParentFile>$([System.String]::Copy('%(FileName)').Split('.')[0])</ParentFile>
+      <ParentExtension>$(ProjectExt.Replace('proj', ''))</ParentExtension>
+      <DependentUpon>%(ParentFile)%(ParentExtension)</DependentUpon>
+    </None>
+  </ItemGroup>
+
 </Project>

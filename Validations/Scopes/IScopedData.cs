@@ -8,7 +8,11 @@ namespace Validations.Scopes
         string  Describe();
     }
 
-    public class ScopedData<TPassThrough, TResponse> : IScopedData
+    public interface IScopedData<TResponse> : IScopedData 
+    {
+    }
+
+    public class ScopedData<TPassThrough, TResponse> : IScopedData<TResponse>
     {
         private Func<TPassThrough, TResponse> PassThroughFunction { get; }
         private string Description { get; }

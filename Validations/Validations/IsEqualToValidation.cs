@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Validations.Internal;
 using Validations.Scopes;
 
 namespace Validations.Validations;
 
-public class EqualityValidation : ValidationBase<IComparable>
+public class IsEqualToValidation : ValidationBase<IComparable>
 {
     private const string ValueToken = "value";
     public override string Name { get; } = "Equal To";
@@ -13,12 +12,12 @@ public class EqualityValidation : ValidationBase<IComparable>
     public override string MessageTemplate { get; } = $"Is not equal to {ValueToken}";
     public IComparable? Value { get; }
 
-    public EqualityValidation(IComparable value, bool isfatal) : base(isfatal)
+    public IsEqualToValidation(IComparable value, bool isfatal) : base(isfatal)
     {
         Value = value;
     }
 
-    public EqualityValidation(IScopedData value, bool isfatal) : base(value, isfatal)
+    public IsEqualToValidation(IScopedData value, bool isfatal) : base(value, isfatal)
     { }
 
     protected override Dictionary<string, string> GetTokenValues()

@@ -7,17 +7,17 @@ using Validations.Validations;
 
 namespace Validations.Scopes
 {
-    public class ForEachScope<TValidationType, TFieldType, TListItem> : IChildScope<TValidationType>
+    public class ForEachScope<TValidationType, TListItem> : IChildScope<TValidationType>
     {
         readonly List<IChildScope<TValidationType>> childScopes = new();
-        private readonly IFieldDescriptor<TValidationType, TFieldType> parentChain;
+        private readonly IFieldDescriptor<TValidationType> parentChain;
         private readonly IScope<TValidationType> parentScope;
         protected bool canActivate = true;
         protected Func<IValidationContext, TValidationType, bool>?  canActivateFunc = null;
         public string? Description { get; protected set; } = null;
 
         public ForEachScope(
-            IFieldDescriptor<TValidationType, TFieldType> parentChain,
+            IFieldDescriptor<TValidationType> parentChain,
             IScope<TValidationType> parentScope,
             Action<IFieldDescriptor<TValidationType, TListItem>> rules
         )
@@ -44,6 +44,8 @@ namespace Validations.Scopes
 
         public void Activate(IValidationContext context, TValidationType instance)
         {
+            if (instance == null) { throw new ArgumentNullException(nameof(instance)); }
+
             var list = parentChain.GetPropertyValue(instance) as IEnumerable<TListItem>;
             if (list == null)
             {
@@ -53,7 +55,7 @@ namespace Validations.Scopes
 
             var methodInfo = typeof(TValidationType).GetMethod(parentChain.Property);
             var propertyInfo = typeof(TValidationType).GetProperty(parentChain.Property);
-            if (propertyInfo == null) return;
+            if (propertyInfo == null || propertyInfo.GetMethod == null) return;
 
             var param = Expression.Parameter(typeof(TValidationType));
             var property = Expression.Property(param, propertyInfo.GetMethod);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Validations.Internal;
 using Validations.Scopes;
@@ -30,6 +31,28 @@ namespace Validations
             Action<ScopeInternal<TValidationType, TPassThrough>> rules)
         {
             var child = new PassThroughChildScope<TValidationType, TPassThrough>(validationScope, scoped, rules);
+            validationScope.AddChildScope(child);
+        }
+
+        protected void ForEachScope<TListItemType>(
+            Expression<Func<TValidationType, IEnumerable<TListItemType>>> expr,
+            Action<IFieldDescriptor<TValidationType, TListItemType>> listItemRules)
+            //where TListType : IEnumerable<TListItemType>
+        {
+            var chain = Describe(expr);
+            var child = new ForEachScope<TValidationType, TListItemType>(chain, chain.GetCurrentScope(), listItemRules);
+            validationScope.AddChildScope(child);
+        }
+
+        protected void ForEachScope</*TListType,*/ TListItemType>(
+            Expression<Func<TValidationType, IEnumerable<TListItemType>>> expr,
+            Action<IFieldDescriptor<TValidationType, IEnumerable<TListItemType>>> propertyRules,
+            Action<IFieldDescriptor<TValidationType, TListItemType>> listItemRules)
+            //where TListType : IEnumerable<TListItemType>
+        {
+            var chain = Describe(expr);
+            propertyRules.Invoke(chain);
+            var child = new ForEachScope<TValidationType, TListItemType>(chain, chain.GetCurrentScope(), listItemRules);
             validationScope.AddChildScope(child);
         }
 

@@ -146,7 +146,7 @@ namespace Validations
             var fieldValidators = scope.GetFieldValidators();
             foreach (var fieldValidator in fieldValidators)
             {
-                var fieldMessageGroup = new ValidationMessage(null, fieldValidator.Property, new());
+                var fieldMessageGroup = new ValidationMessage("field", fieldValidator.Property, null, new());
                 messages.Add(fieldMessageGroup);
 
                 context.SetCurrentProperty(fieldValidator.Property);

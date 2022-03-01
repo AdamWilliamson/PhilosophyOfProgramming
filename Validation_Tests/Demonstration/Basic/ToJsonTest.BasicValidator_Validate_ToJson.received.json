@@ -1,0 +1,38 @@
+﻿{
+    "fieldErrors": [
+        {
+            "property": "TrackNumber",
+            "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        },
+        {
+            "property": "TrackName",
+            "errors": [
+                {
+                    "error": "Is Not Empty",
+                    "isFatal": true,
+                    "childErrors": []
+                }
+            ]
+        },
+        {
+            "property": "Duration",
+            "errors": []
+        },
+        {
+            "property": "Description",
+            "errors": [
+                {
+                    "error": "Is not between 20 and 400",
+                    "isFatal": false,
+                    "childErrors": []
+                }
+            ]
+        }
+    ]
+}

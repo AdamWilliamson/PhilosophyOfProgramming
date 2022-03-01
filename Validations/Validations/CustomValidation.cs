@@ -26,6 +26,7 @@ public class CustomValidation<T> : IValidation
     public string MessageTemplate { get; } = "Custom";
     public Action<CustomContext, T?> Custom { get; }
 
+    protected bool isFatal = false;
     public CustomValidation(Action<CustomContext, T?> custom)
     {
         Custom = custom;
@@ -38,7 +39,7 @@ public class CustomValidation<T> : IValidation
             var customContext = new CustomContext();
             Custom.Invoke(customContext, converted);
 
-            return new ValidationError("Custom", false, new())
+            return new ValidationError("Custom", isFatal, new())
             {
                 ChildErrors = customContext.GetErrors().Select(e => new ValidationError(e.Item1, e.Item2, new())).ToList()
             };
@@ -49,6 +50,12 @@ public class CustomValidation<T> : IValidation
 
     public ValidationMessage Describe<TOther>(ValidationContext<TOther> context)
     {
-        return new ValidationMessage("Custom", DescriptionTemplate, new());
+        return new ValidationMessage("Custom", DescriptionTemplate, MessageTemplate, new());
+    }
+
+
+    public void IsFatal(bool isFatal)
+    {
+        this.isFatal = isFatal;
     }
 }

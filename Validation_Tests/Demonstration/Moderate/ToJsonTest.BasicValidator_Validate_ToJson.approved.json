@@ -1,22 +1,21 @@
 ﻿{
     "fieldErrors": [
         {
-            "property": "Integer",
+            "property": "TrackNumber",
             "errors": [
                 {
                     "error": "Is not equal to 1",
-                    "isFatal": false,
-                    "childErrors": []
-                },
-                {
-                    "error": "Is not equal to 2",
                     "isFatal": false,
                     "childErrors": []
                 }
             ]
         },
         {
-            "property": "String",
+            "property": "TrackName",
+            "errors": []
+        },
+        {
+            "property": "Duration",
             "errors": []
         },
         {
@@ -34,12 +33,22 @@
                     "error": "Is not equal to 1",
                     "isFatal": false,
                     "childErrors": []
+                },
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
                 }
             ]
         },
         {
             "property": "IntegerList[2]",
             "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                },
                 {
                     "error": "Is not equal to 1",
                     "isFatal": false,
@@ -54,12 +63,22 @@
                     "error": "Is not equal to 1",
                     "isFatal": false,
                     "childErrors": []
+                },
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
                 }
             ]
         },
         {
             "property": "IntegerList[4]",
             "errors": [
+                {
+                    "error": "Is not equal to 1",
+                    "isFatal": false,
+                    "childErrors": []
+                },
                 {
                     "error": "Is not equal to 1",
                     "isFatal": false,
