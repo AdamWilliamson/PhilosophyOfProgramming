@@ -2,39 +2,52 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Validations.Internal;
+using Validations.Utilities;
 using Validations.Validations;
 
 namespace Validations.Scopes
 {
-    public interface IMessageScope { }
-
-    public interface IScope<TValidationType> : IMessageScope
+    public interface IValidationObject 
     {
-        void Activate(IValidationContext context, TValidationType instance);
-        void ActivateToDescribe(IValidationContext context);
-        List<IChildScope<TValidationType>> GetChildScopes();
+        void Activate(IValidationContext context, object instance);
+        ValidationMessage ActivateToDescribe(IValidationContext context);
+
+        void Expand(IValidationContext context, object instance);
+        void ExpandToDescribe(IValidationContext context);
+    }
+
+    public interface IParentScope
+    {
         ScopeMessage GetValidationDetails();
     }
 
-    public interface IFieldScope 
+    public interface IScope<TValidationType> : IValidationObject, IParentScope
     {
-        string Property { get; }
+        //void Activate(IValidationContext context, TValidationType instance);
+        //void ActivateToDescribe(IValidationContext context);
+        //List<IChildScope<TValidationType>> GetChildScopes();
+        //ScopeMessage GetValidationDetails();
     }
 
-    public class FieldScope : IFieldScope
-    {
-        public FieldScope(string property)
-        {
-            Property = property;
-        }
+    //public interface IFieldScope 
+    //{
+    //    string Property { get; }
+    //}
 
-        public string Property { get; }
-    }
+    //public class FieldScope : IFieldScope
+    //{
+    //    public FieldScope(string property)
+    //    {
+    //        Property = property;
+    //    }
 
-    public interface IChildScope<TValidationType> : IScope<TValidationType>
+    //    public string Property { get; }
+    //}
+
+    public interface IChildScope<TValidationType> : IScope<TValidationType>, IValidationObject
     {
-        void AddChildScope(IChildScope<TValidationType> scope);
-        IScope<TValidationType>? GetParentScope();
+        //void AddChildScope(IChildScope<TValidationType> scope);
+        IParentScope GetParentScope();
         //List<IChildScope<TValidationType>> GetChildScopes();
         //void Activate(IValidationContext context, TValidationType instance);
         //void Describe(IValidationContext context);
@@ -44,19 +57,37 @@ namespace Validations.Scopes
 
     public interface IFieldDescriptorScope<TValidationType>
     {
-        IFieldDescriptor<TValidationType, TFieldType> CreateFieldChainValidator<TFieldType>(Expression<Func<TValidationType, TFieldType>> property);
+        //IFieldDescriptor<TValidationType, TFieldType> CreateFieldChainValidator<TFieldType>(Expression<Func<TValidationType, TFieldType>> property);
+        //AbstractValidator<TFieldType> CreateFieldObjectValidator<TFieldType>(Expression<Func<TValidationType, TFieldType>> property);
+
+        IFieldDescriptor<TValidationType, TFieldType> GetFieldDescriptor<TFieldType>(string propertyString);
+        void AddFieldDescriptor(IFieldDescriptor<TValidationType> fieldDescriptor);
+
     }
 
-    public interface IValidationScope<TValidationType> : IScope<TValidationType>, IFieldDescriptorScope<TValidationType>
+    public interface IValidationScope<TValidationType> : IFieldDescriptorScope<TValidationType>
     {
-        void AddChildScope(IChildScope<TValidationType> scope);
-        void AddFieldScope(IFieldScope fieldScope);
-        List<IFieldScope> GetFieldScopes();
-        
-        string? Description { get; }
+        //void AddValidator(IValidationWrapper<TValidationType> validation);
+        //void AddChildScope(IChildScope<TValidationType> scope);
+        //void AddFieldScope(IFieldScope fieldScope);
+        //List<IFieldScope> GetFieldScopes();
+        void AddValidatableObject(IValidationObject validationObject);
+        //string? Description { get; }
         void SetExecutingScope(IScope<TValidationType> scope);
-        IScope<TValidationType> GetExecutingScope();
+        IScope<TValidationType>? GetExecutingScope();
+        //LinkedList<IValidationObject> GetValidationObjects();
+
+        void Expand(IValidationContext context, object instance);
+        void ExpandToDescribe(IValidationContext context);
     }
+
+    //public interface IExpansionScope { }
+
+    //public class FieldValidationItem 
+    //{
+    //    public IFieldDescriptor FieldDescriptor { get; set; }
+    //    public IValidationWrapper ValidationWrapper { get; set; }
+    //}
 
     /// <summary>
     /// The Base scope for each individual Validator Class
@@ -66,34 +97,39 @@ namespace Validations.Scopes
     /// This is for passing Validator information to the Runner.
     /// </summary>
     /// <typeparam name="TValidationType"></typeparam>
-    public class ValidationScope<TValidationType> : IValidationScope<TValidationType>
+    public class ValidationScope<TValidationType> : IValidationScope<TValidationType>, IParentScope
     {
-        private List<IChildScope<TValidationType>> ChildScopes = new();
-        private List<IFieldScope> FieldScopes = new();
-        private readonly List<IFieldDescriptor<TValidationType>> fieldChainValidators = new();
-        IScope<TValidationType> currentScope;
+        protected LinkedList<IValidationObject> validationObjects = new();
+        //protected List<IChildScope<TValidationType>> ChildScopes = new();
+        //protected List<IFieldScope> FieldScopes = new();
+        protected readonly List<IFieldDescriptor<TValidationType>> fieldChainValidators = new();
+        //protected readonly LinkedList<FieldValidationItem> ValidationItems = new ();
+        protected IScope<TValidationType>? currentScope = null;
 
-        public ValidationScope()
+        public ValidationScope(){}
+
+        public LinkedList<IValidationObject> GetValidationObjects() { return validationObjects; }
+        public virtual IScope<TValidationType>? GetParentScope() { return null; }
+
+        public virtual ScopeMessage GetValidationDetails()
         {
-            this.currentScope = this;
+            return new ScopeMessage(nameof(ValidationScope<TValidationType>), null, GetParentScope()?.GetValidationDetails(), new());
         }
 
-        public IScope<TValidationType>? GetParentScope() { return null; }
-
-        public ScopeMessage GetValidationDetails()
-        {
-            return new ScopeMessage(nameof(ValidationScope<TValidationType>), Description, GetParentScope()?.GetValidationDetails(), new());
-        }
-
-        public void SetExecutingScope(IScope<TValidationType> scope)
+        public virtual void SetExecutingScope(IScope<TValidationType> scope)
         {
             currentScope = scope;
         }
 
-        public IScope<TValidationType> GetExecutingScope()
+        public virtual IScope<TValidationType>? GetExecutingScope()
         {
             return currentScope;
         }
+
+        //public virtual void Expand()
+        //{
+        //    //foreach()
+        //}
 
         //public void SetExecutingScope(IValidationScope<TValidationType> scope)
         //{
@@ -105,47 +141,91 @@ namespace Validations.Scopes
         //    return currentScope;
         //}
 
-        public void AddFieldScope(IFieldScope fieldScope) { FieldScopes.Add(fieldScope); }
+        //public virtual void AddExpansionScope(IExpansionScope expansionScope) {  ExpansionScopes.AddLast(expansionScope); }
 
-        public void AddChildScope(IChildScope<TValidationType> scope)
+        //public virtual void AddFieldScope(IFieldScope fieldScope) { FieldScopes.Add(fieldScope); }
+
+        //public virtual void AddChildScope(IChildScope<TValidationType> scope)
+        //{
+        //    //if (currentScope == null) ChildScopes.Add(scope);
+        //    //else currentScope.AddScope(scope);
+
+        //    ChildScopes.Add(scope);
+        //}
+
+
+        public void AddValidatableObject(IValidationObject validationObject)
         {
-            //if (currentScope == null) ChildScopes.Add(scope);
-            //else currentScope.AddScope(scope);
-
-            ChildScopes.Add(scope);
+            validationObjects.AddLast(validationObject);
         }
 
-        public IFieldDescriptor<TValidationType, TFieldType> CreateFieldChainValidator<TFieldType>(Expression<Func<TValidationType, TFieldType>> property)
+        public void Expand(IValidationContext context, object instance)
         {
-            var existing = fieldChainValidators.Find(x => x.Matches(property));
+            foreach(var validationObject in validationObjects)
+            {
+                validationObject.Expand(context, instance);
+            }
+
+            context.AddValidationObjects(validationObjects);
+        }
+
+        public void ExpandToDescribe(IValidationContext context)
+        {
+            foreach (var validationObject in validationObjects)
+            {
+                validationObject.ExpandToDescribe(context);
+            }
+
+            context.AddValidationObjects(validationObjects);
+        }
+
+        public virtual IFieldDescriptor<TValidationType, TFieldType> GetFieldDescriptor<TFieldType>(Expression<Func<TValidationType, TFieldType>> property)
+        {
+            string propertyString = ExpressionUtilities.GetPropertyPath(property);
+            return GetFieldDescriptor<TFieldType>(propertyString);
+        }
+
+        public virtual IFieldDescriptor<TValidationType, TFieldType> GetFieldDescriptor<TFieldType>(string propertyString)
+        {
+            var existing = fieldChainValidators.Find(x => x.Matches(propertyString));
 
             if (existing is IFieldDescriptor<TValidationType, TFieldType> converted)
             {
                 return converted;
             }
 
-            var validator = new FieldDescriptor<TValidationType, TFieldType>(this, property);
+            var validator = new FieldDescriptor<TValidationType, TFieldType>(this, propertyString);
             fieldChainValidators.Add(validator);
 
             return validator;
         }
 
-        public List<IFieldDescriptor<TValidationType>> GetFieldValidators()
+        public void AddFieldDescriptor(IFieldDescriptor<TValidationType> fieldDescriptor)
+        {
+            fieldChainValidators.Add(fieldDescriptor);
+        }
+
+        //public virtual AbstractValidator<TFieldType> CreateFieldObjectValidator<TFieldType>(Expression<Func<TValidationType, TFieldType>> property)
+        //{
+        //    return new AbstractValidator<TFieldType>();
+        //}
+
+        public virtual List<IFieldDescriptor<TValidationType>> GetFieldValidators()
         {
             return fieldChainValidators;
         }
 
-        public List<IChildScope<TValidationType>> GetChildScopes()
-        {
-            return ChildScopes;
-        }
+        //public virtual List<IChildScope<TValidationType>> GetChildScopes()
+        //{
+        //    return ChildScopes;
+        //}
 
-        public List<IFieldScope> GetFieldScopes()
-        {
-            return FieldScopes;
-        }
+        //public virtual List<IFieldScope> GetFieldScopes()
+        //{
+        //    return FieldScopes;
+        //}
 
-        public void Include(ValidationScope<TValidationType> scope)
+        public virtual void Include(ValidationScope<TValidationType> scope)
         {
             foreach (var fieldvalidation in scope.GetFieldValidators())
             {
@@ -170,22 +250,55 @@ namespace Validations.Scopes
                 }
             }
 
-            foreach(var childScope in scope.GetChildScopes())
+            foreach (var validatableObject in scope.validationObjects)
             {
-                this.AddChildScope(childScope);
+                validationObjects.AddLast(validatableObject);
             }
+
+
+            //foreach(var childScope in scope.GetChildScopes())
+            //{
+            //    this.AddChildScope(childScope);
+            //}
         }
 
-        public void Activate(IValidationContext context, TValidationType instance)
+        //public virtual void Activate(IValidationContext context, TValidationType instance)
+        //{
+        //    // No Activations required on this scope
+        //}
+
+        //public virtual void ActivateToDescribe(IValidationContext context)
+        //{
+        //    // No Activations required on this scope
+        //}
+
+        //public virtual string? Description { get; }
+    }
+
+    public class ChildValidationScope<TValidationType> : ValidationScope<TValidationType>
+    {
+        private readonly string parentProperty;
+
+        public ChildValidationScope(string parentProperty)
         {
-            // No Activations required on this scope
+            this.parentProperty = parentProperty;
         }
 
-        public void ActivateToDescribe(IValidationContext context)
+        public override IFieldDescriptor<TValidationType, TFieldType> GetFieldDescriptor<TFieldType>(Expression<Func<TValidationType, TFieldType>> property)
         {
-            // No Activations required on this scope
-        }
+            string propertyString = $"{parentProperty}.{ExpressionUtilities.GetPropertyPath(property)}";
 
-        public string? Description { get; }
+            var existing = fieldChainValidators.Find(x => x.Matches(propertyString));
+
+            if (existing is IFieldDescriptor<TValidationType, TFieldType> converted)
+            {
+                return converted;
+            }
+
+            var validator = new FieldDescriptor<TValidationType, TFieldType>(this, propertyString);
+            fieldChainValidators.Add(validator);
+
+            return validator;
+        }
     }
 }

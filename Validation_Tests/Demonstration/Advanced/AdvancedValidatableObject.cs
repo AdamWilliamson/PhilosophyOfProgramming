@@ -24,4 +24,8 @@ namespace Validations_Tests.Demonstration.Advanced
         public Dictionary<string, AllFieldTypesDto> AllFieldTypesDictionary { get; set; } = new();
         public ValidationStruct Struct { get; set; } = new();
     }
+
+    public struct ValidationStruct
+    {
+    }
 }

@@ -8,13 +8,13 @@ namespace Validations.Scopes
     public class PassThroughChildScope<TValidationType, TPassThrough> : IChildScope<TValidationType>
     {
         readonly List<IChildScope<TValidationType>> childScopes = new();
-        private readonly IScope<TValidationType> parentScope;
+        private readonly IParentScope parentScope;
         protected bool canActivate = true;
         protected Func<IValidationContext, TValidationType, bool>?  canActivateFunc = null;
         public string? Description { get; protected set; } = null;
 
         public PassThroughChildScope(
-            IScope<TValidationType> parentScope,
+            IParentScope parentScope,
              Func<IValidationContext, TValidationType, TPassThrough> scoped,
             Action<ScopeInternal<TValidationType, TPassThrough>> rules, 
             string? description = null
@@ -26,7 +26,7 @@ namespace Validations.Scopes
             Description = description;
         }
 
-        public IScope<TValidationType> GetParentScope()
+        public IParentScope GetParentScope()
         {
             return parentScope;
         }
@@ -37,7 +37,7 @@ namespace Validations.Scopes
         }
 
         public PassThroughChildScope(
-            IScope<TValidationType> parentScope,
+            IParentScope parentScope,
             Func<IValidationContext, TValidationType, TPassThrough> scoped,
             Action<ScopeInternal<TValidationType, TPassThrough>> rules,
             bool canActivate,
@@ -55,7 +55,23 @@ namespace Validations.Scopes
         protected Action<ScopeInternal<TValidationType, TPassThrough>> Rules { get; }
         protected Func<IValidationContext, TValidationType, TPassThrough> Action { get; }
 
-        public void Activate(IValidationContext context, TValidationType instance)
+        public void Expand(IValidationContext context, object instance)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ExpandToDescribe(IValidationContext context)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Activate(IValidationContext context, object instance)
+        {
+            if (instance is TValidationType validationInstance)
+                Activate(context, validationInstance);
+        }
+
+        protected void Activate(IValidationContext context, TValidationType instance)
         {
             if (canActivate || canActivateFunc?.Invoke(context, instance) == true)
             {
@@ -64,9 +80,11 @@ namespace Validations.Scopes
             }
         }
 
-        public void ActivateToDescribe(IValidationContext context)
+        public ValidationMessage ActivateToDescribe(IValidationContext context)
         {
             Rules.Invoke(new ScopeInternal<TValidationType, TPassThrough>());
+
+            return new ValidationMessage("", null);
         }
     }
 }

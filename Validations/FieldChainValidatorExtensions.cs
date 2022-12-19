@@ -21,9 +21,9 @@ namespace Validations
             if (lastValidation != null)
             {
                 _ = chain.GetValidations().Remove(lastValidation);
-                var validationPieces = lastValidation?.GetAllValidations().ToArray() ?? Array.Empty<IValidation>();
+                //var validationPieces = lastValidation?.GetAllValidations().ToArray() ?? Array.Empty<IValidation>();
 
-                chain.AddValidator(new WhenValidationWrapper<TClassType>(chain.GetCurrentScope(), validateWhenTrue, validationPieces));
+                chain.AddValidator(new WhenValidationWrapper<TClassType>(chain.GetCurrentScope(), validateWhenTrue, lastValidation));
 
                 if (description != null)
                 {
@@ -33,6 +33,27 @@ namespace Validations
             
             return chain;
         }
+
+        public static IFieldDescriptor<TClassType, IEnumerable<TPropertyType>> ForEach<TClassType, TPropertyType>(
+            this IFieldDescriptor<TClassType, IEnumerable<TPropertyType>> chain//,
+            //Action<ChildAbstractValidator<TClassType, TPropertyType>>? validationsForEachItem
+            )
+        {
+            //if (validationsForEachItem == null) throw new ArgumentNullException(nameof(validationsForEachItem));
+            ////if (chain.GetCurrentScope() is not IValidationScope<TClassType> validationScope) throw new ArgumentNullException(nameof(chain), "Field Descriptor has invalid scope type");
+
+            ////var scope = new ForEachScope<TClassType, TPropertyType>(chain, chain.GetCurrentScope(), validationsForEachItem);
+            ////validationScope.AddChildScope(scope);
+            ////chain.AddValidator(new ValidationWrapper<TPropertyType>(chain.GetCurrentScope(), new ForEachValidation<TPropertyType>(validationsForEachItem)));
+
+            ////chain.AddValidator(new ForEachValidationWrapper(
+            ////    chain.GetCurrentScope(),
+            ////    validationsForEachItem
+            ////    ));
+
+            return chain;
+        }
+
 
         //public static IFieldDescriptor<TClassType, TResult> ForEach<TClassType, TResult>(this IFieldDescriptor<TClassType, TResult> chain)
         //    where TResult : IComparable

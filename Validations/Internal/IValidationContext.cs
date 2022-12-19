@@ -10,10 +10,15 @@ namespace Validations.Internal
         //Dictionary<string, List<ValidationError>> GetErrors();
         //void AddError(string property, string message, bool fatal = false);
         //void AddError(string message, bool fatal = false);
+        void AddValidationObjects(LinkedList<IValidationObject> validationObjects);
     }
 
-    public class ValidationContext<TValidationType> : IValidationContext
+    public interface IValidationContext<TValidationType> : IValidationContext
+    { }
+
+    public class ValidationContext<TValidationType> : IValidationContext<TValidationType>
     {
+        LinkedList<IValidationObject> validationObjects = new();
         //private readonly Dictionary<string, List<ValidationError>> Errors = new();
         protected string? CurrentProperty { get; set; }
         //private List<string> scopeMessages { get; } = new();
@@ -28,6 +33,14 @@ namespace Validations.Internal
         public ValidationContext() { }
 
         public void SetCurrentProperty(string property) { CurrentProperty = property; }
+
+        public void AddValidationObjects(LinkedList<IValidationObject> validationObjects)
+        {
+            foreach(var validationObject in validationObjects)
+            {
+                this.validationObjects.AddLast(validationObject);
+            }
+        }
 
         //public Dictionary<string, List<ValidationError>> GetErrors() { return Errors; }
 

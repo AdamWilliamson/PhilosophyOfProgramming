@@ -9,8 +9,8 @@ namespace Validations.Validations
         string Name { get; }
         string MessageTemplate { get; }
         string DescriptionTemplate { get; }
-        ValidationError? Validate<T>(ValidationContext<T> context, object? value);
-        ValidationMessage Describe<T>(ValidationContext<T> context);
+        ValidationError? Validate<T>(IValidationContext<T> context, object? value);
+        ValidationMessage Describe<T>(IValidationContext<T> context);
         void IsFatal(bool isFatal);
     }
 
@@ -39,7 +39,7 @@ namespace Validations.Validations
             this.isFatal = isFatal;
         }
 
-        protected TValue? GetValue<T, TValue>(ValidationContext<T> context)
+        protected TValue? GetValue<T, TValue>(IValidationContext<T> context)
         {
             if (ScopedData == null) return default;
 
@@ -49,7 +49,7 @@ namespace Validations.Validations
             return default;
         }
 
-        public virtual ValidationError? Validate<T>(ValidationContext<T> context, object? value)
+        public virtual ValidationError? Validate<T>(IValidationContext<T> context, object? value)
         {
             if (Test(GetValue<T, TFieldType>(context), value))
             {
@@ -59,7 +59,7 @@ namespace Validations.Validations
             return new ValidationError(MessageTemplate, isFatal, GetTokenValues());
         }
 
-        public virtual ValidationMessage Describe<T>(ValidationContext<T> context)
+        public virtual ValidationMessage Describe<T>(IValidationContext<T> context)
         {
             return new ValidationMessage(Name, DescriptionTemplate, MessageTemplate, GetTokenValues());
         }

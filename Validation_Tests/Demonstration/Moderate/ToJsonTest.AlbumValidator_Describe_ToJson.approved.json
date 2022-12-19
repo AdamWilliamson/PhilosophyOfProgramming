@@ -1,0 +1,38 @@
+﻿{
+    "scopeMessage": null,
+    "validator": null,
+    "error": null,
+    "description": null,
+    "children": [
+        {
+            "scopeMessage": null,
+            "validator": null,
+            "error": null,
+            "description": "Artist.FirstName",
+            "children": [
+                {
+                    "scopeMessage": null,
+                    "validator": null,
+                    "error": "Is not equal to John",
+                    "description": "Must equal to John",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "scopeMessage": null,
+            "validator": null,
+            "error": null,
+            "description": "SongList",
+            "children": [
+                {
+                    "scopeMessage": null,
+                    "validator": null,
+                    "error": "Is Null",
+                    "description": "Must not be Null",
+                    "children": []
+                }
+            ]
+        }
+    ]
+}

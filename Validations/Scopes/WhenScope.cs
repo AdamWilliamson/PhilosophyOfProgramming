@@ -7,15 +7,15 @@ namespace Validations.Scopes
 {
     public class WhenScope<TValidationType> : IChildScope<TValidationType>
     {
-        List<IChildScope<TValidationType>> childScopes = new();
+        //List<IChildScope<TValidationType>> childScopes = new();
         protected bool canActivate = true;
         protected Func<IValidationContext, TValidationType, bool>? canActivateFunc = null;
-        private readonly IScope<TValidationType> parentScope;
+        private readonly IParentScope parentScope;
 
         public string? Description { get; protected set; } = null;
 
         public WhenScope(
-            IScope<TValidationType> parentScope,
+            IParentScope parentScope,
             Action rules,
             string? description = null
         )
@@ -26,7 +26,7 @@ namespace Validations.Scopes
         }
 
         public WhenScope(
-            IScope<TValidationType> parentScope,
+            IParentScope parentScope,
             Action rules,
             bool canActivate,
             Func<IValidationContext, TValidationType, bool>? canActivateFunc,
@@ -37,19 +37,19 @@ namespace Validations.Scopes
             this.canActivateFunc = canActivateFunc;
         }
 
-        public IScope<TValidationType> GetParentScope() { return parentScope; }
+        public IParentScope GetParentScope() { return parentScope; }
 
         public ScopeMessage GetValidationDetails()
         {
             return new ScopeMessage(nameof(ValidationScope<TValidationType>), Description, GetParentScope()?.GetValidationDetails(), new());
         }
 
-        public void AddChildScope(IChildScope<TValidationType> scope) { childScopes.Add(scope); }
-        public List<IChildScope<TValidationType>> GetChildScopes() { return childScopes; }
+        //public void AddChildScope(IChildScope<TValidationType> scope) { childScopes.Add(scope); }
+        //public List<IChildScope<TValidationType>> GetChildScopes() { return childScopes; }
 
         protected Action Rules { get; }
 
-        public void Activate(IValidationContext context, TValidationType instance)
+        protected void Activate(IValidationContext context, TValidationType instance)
         {
             if (canActivate || canActivateFunc?.Invoke(context, instance) == true)
             {
@@ -57,9 +57,28 @@ namespace Validations.Scopes
             }
         }
 
-        public void ActivateToDescribe(IValidationContext context)
+
+        public void Activate(IValidationContext context, object instance)
         {
+            if(instance is TValidationType validationType)
+                Activate(context, validationType);
+        }
+
+        public void Expand(IValidationContext context, object instance)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ExpandToDescribe(IValidationContext context)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ValidationMessage ActivateToDescribe(IValidationContext context)
+        {
+            throw new NotImplementedException();
             Rules.Invoke();
+            return new ValidationMessage("", null);
         }
     }
 }

@@ -13,6 +13,7 @@ namespace Validations_Tests.Demonstration.Moderate
         public int TrackNumber { get; set; }
         public string TrackName { get; set; }
         public double Duration { get; set; }
+        public string Description { get; set; }
     }
 
     public class Album

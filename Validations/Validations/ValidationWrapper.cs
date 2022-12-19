@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Validations.Internal;
 using Validations.Scopes;
@@ -25,7 +26,14 @@ namespace Validations.Validations
         }
     }
 
-    public interface IValidationWrapper<TValidationType>
+    public interface IValidationWrapper : IValidationObject
+    {
+        //ValidationMessage Describe(IValidationContext context,);
+        //List<IValidation> GetValidations(IValidationContext validationContext);
+        //void Expand(IValidationContext context, object instance);
+    }
+
+    public interface IValidationWrapper<TValidationType> : IValidationWrapper
     {
         ValidationMessage MessageTemplate { get; }
         List<IValidation> GetValidations(ValidationContext<TValidationType> validationContext, TValidationType instance);
@@ -33,7 +41,7 @@ namespace Validations.Validations
         void SetMessageTemplate(string messageTemplate);
 
         //TODO: See if I can refactor this out. <TOther>
-        ValidationMessage Describe(ValidationContext<TValidationType> context);
+        //ValidationMessage Describe(ValidationContext<TValidationType> context);
         void MakeVital();
         //IValidationScope<TValidationType> GetOwningScope();
     }
@@ -44,7 +52,7 @@ namespace Validations.Validations
     /// It also handles some of the more basic management to reduce IValidations needing duplicate code.
     /// </summary>
     /// <typeparam name="TValidationType">The Class that will be validated against</typeparam>
-    public class ValidationWrapper<TValidationType> : IValidationWrapper<TValidationType>
+    public class ValidationWrapper<TValidationType> : IValidationWrapper<TValidationType>, IValidationObject
     {
         protected List<IValidation> validations = new();
         protected string? message = null;
@@ -87,22 +95,38 @@ namespace Validations.Validations
         public virtual void SetMessageTemplate(string messageTemplate) { message = messageTemplate; }
         //public IValidationScope<TValidationType> GetOwningScope() {  return owningScope; }
 
-        public ValidationMessage Describe(ValidationContext<TValidationType> context)
+        public void Expand(IValidationContext context, object instance) 
         {
-            var validationpieces = GetAllValidations();
-            var scopeDescription = owningScope.GetValidationDetails();
+            throw new NotImplementedException();
+        }
 
-            var scopeMessages = owningScope.GetValidationDetails();
+        public void ExpandToDescribe(IValidationContext context)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Activate(IValidationContext context, object instance)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ValidationMessage ActivateToDescribe(IValidationContext context)
+        {
+            if (context is not IValidationContext<TValidationType> validationType) return new ValidationMessage("", null);
+
+            var validationpieces = GetAllValidations();
+            //var scopeDescription = owningScope.GetValidationDetails();
+            //var scopeMessages = owningScope.GetValidationDetails();
 
             if (validationpieces.Count == 1)
             {
-                return validationpieces.First().Describe(context);
+                return validationpieces.First().Describe(validationType);
             }
 
             var messages = new List<ValidationMessage>();
             foreach (var validationpiece in validationpieces)
             {
-                var childMessage = validationpiece.Describe(context);
+                var childMessage = validationpiece.Describe(validationType);
 
                 if (childMessage != null)
                     messages.Add(childMessage);

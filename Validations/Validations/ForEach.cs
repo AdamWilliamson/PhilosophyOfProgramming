@@ -5,29 +5,38 @@
 
 //namespace Validations.Validations;
 
-//public class ForEachValidation<T> : IValidation
+//public class ForEachValidation<TPropertyType> : IValidation
 //{
+//    private readonly IValidator parent;
+
 //    public string Name { get; } = "For Each";
 //    public string DescriptionTemplate { get; } = "";
+//    public string ErrorTemplate { get; } = "";
+    
 //    public string MessageTemplate { get; } = "";
-//    public Action<CustomContext, T?> Custom { get; }
+//    public Action<ChildAbstractValidator<TPropertyType>> Custom { get; }
 
-//    public ForEachValidation(Action<CustomContext, T?> custom)
+//    public ForEachValidation(IValidator parent, Action<ChildAbstractValidator<TPropertyType>> custom)
 //    {
+//        this.parent = parent;
 //        Custom = custom;
 //    }
 
 //    public ValidationError? Validate<TOther>(ValidationContext<TOther> context, object? value)
 //    {
-//        if (value is T converted)
+//        if (value is IEnumerable<TPropertyType> converted)
 //        {
-//            var customContext = new CustomContext();
-//            Custom.Invoke(customContext, converted);
+//            var validator = new ChildAbstractValidator<TPropertyType>(parent);
 
-//            return new ValidationError("Custom", false, new())
+//            foreach (var item in converted)
 //            {
-//                ChildErrors = customContext.GetErrors().Select(e => new ValidationError(e.Item1, e.Item2, new())).ToList()
-//            };
+//                Custom.Invoke(validator);
+
+//                return new ValidationError("Custom", false, new())
+//                {
+//                    ChildErrors = customContext.GetErrors().Select(e => new ValidationError(e.Item1, e.Item2, new())).ToList()
+//                };
+//            }
 //        }
 
 //        return null;
@@ -35,6 +44,6 @@
 
 //    public ValidationMessage Describe<TOther>(ValidationContext<TOther> context)
 //    {
-//        return new ValidationMessage("Custom", DescriptionTemplate, new());
+//        return new ValidationMessage("Custom", DescriptionTemplate, ErrorTemplate, new());
 //    }
 //}

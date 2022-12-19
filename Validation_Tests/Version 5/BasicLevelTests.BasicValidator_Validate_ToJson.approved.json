@@ -1,0 +1,47 @@
+﻿{
+    "results": [
+        {
+            "property": "TrackName",
+            "outcomes": [
+                {
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "TrackName",
+                    "message": "Is not equal to value",
+                    "group": null
+                }
+            ]
+        },
+        {
+            "property": "Duration",
+            "outcomes": [
+                {
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "Duration",
+                    "message": "Duration Error Message.",
+                    "group": {
+                        "name": "TrackNumber is 1",
+                        "description": "TrackNumber is 1",
+                        "group": null
+                    }
+                },
+                {
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "Duration",
+                    "message": "The description is invalid",
+                    "group": {
+                        "name": "TrackNumber is 1",
+                        "description": "TrackNumber is 1",
+                        "group": {
+                            "name": "TrackNumber is not 100",
+                            "description": "TrackNumber is not 100",
+                            "group": null
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

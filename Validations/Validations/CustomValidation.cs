@@ -32,7 +32,7 @@ public class CustomValidation<T> : IValidation
         Custom = custom;
     }
 
-    public ValidationError? Validate<TOther>(ValidationContext<TOther> context, object? value)
+    public ValidationError? Validate<TOther>(IValidationContext<TOther> context, object? value)
     {
         if (value is T converted)
         {
@@ -48,7 +48,7 @@ public class CustomValidation<T> : IValidation
         return null;
     }
 
-    public ValidationMessage Describe<TOther>(ValidationContext<TOther> context)
+    public ValidationMessage Describe<TOther>(IValidationContext<TOther> context)
     {
         return new ValidationMessage("Custom", DescriptionTemplate, MessageTemplate, new());
     }

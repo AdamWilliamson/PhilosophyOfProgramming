@@ -17,7 +17,7 @@ namespace Utilities
 
         public static class Arguments
         {
-            public static void AreNull(params Expression<Func<object>>[] expressions)
+            public static void AreNull(params Expression<Func<object?>>[] expressions)
             {
                 foreach (var selector in expressions)
                 {
