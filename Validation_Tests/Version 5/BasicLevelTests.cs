@@ -105,6 +105,11 @@ public abstract class PropertyExpressionTokenBase<TInput, TOutput> : IPropertyEx
 {
     public abstract string Name { get; }
     public abstract Expression<Func<TInput, TOutput>> Expression { get; }
+
+    public virtual string CombineWithParentProperty(string parentProperty)
+    {
+        return parentProperty + "." + Name;
+    }
 }
 
 public class PropertyExpressionToken<TInput, TOutput> : PropertyExpressionTokenBase<TInput, TOutput>
@@ -128,7 +133,8 @@ public class PropertyExpressionToken<TInput, TOutput> : PropertyExpressionTokenB
     }
 }
 
-public class IndexedPropertyExpressionToken<TInput,TOutput> : PropertyExpressionTokenBase<TInput, TOutput>
+public class IndexedPropertyExpressionToken<TInput,TOutput> 
+    : PropertyExpressionTokenBase<TInput, TOutput>
 {
     public override Expression<Func<TInput, TOutput>> Expression { get; }
     public override string Name { get; }
@@ -144,46 +150,34 @@ public class IndexedPropertyExpressionToken<TInput,TOutput> : PropertyExpression
     }
 
     public int Index { get; }
+
+    public override string CombineWithParentProperty(string parentProperty)
+    {
+        if (Index < 0) return parentProperty + $"[n]";
+        return parentProperty + $"[{Index}]";
+    }
 }
 
 #region ScopeData
-public interface IScopedData
+
+public interface IScopeData
 {
-    object? GetValue();
-    string Describe();
+    object? GetValue(object instance);
 }
 
-public interface IScopedData<TResponse> : IScopedData
-{
-}
-
-public class ScopedData<TPassThrough, TResponse> : IScopedData<TResponse>
+public class ScopedData<TPassThrough, TResponse> : IScopeData
+    where TPassThrough : class
 {
     private Func<TPassThrough, TResponse> PassThroughFunction { get; }
-    private string Description { get; }
-    private TPassThrough? Result { get; }
 
-    public ScopedData(
-        string description,
-        Func<TPassThrough, TResponse> passThroughFunction,
-        TPassThrough? result
-    )
+    public ScopedData(Func<TPassThrough, TResponse> passThroughFunction)
     {
-        Description = description;
         PassThroughFunction = passThroughFunction;
-        Result = result;
     }
 
-    public object? GetValue()
+    public object? GetValue(object instance)
     {
-        if (Result == null) return null;
-
-        return PassThroughFunction.Invoke(Result);
-    }
-
-    public string Describe()
-    {
-        return Description;
+        return PassThroughFunction.Invoke((TPassThrough)instance );
     }
 }
 #endregion
@@ -192,6 +186,7 @@ public class ScopedData<TPassThrough, TResponse> : IScopedData<TResponse>
 public interface IValidationAction 
 {
     ValidationActionResult Validate(object? value);
+    DescribeActionResult Describe();
 }
 
 public interface IValidationComponent
@@ -218,6 +213,16 @@ public class ValidationActionResult
     public string Message { get; }
 }
 
+public class DescribeActionResult
+{
+    public DescribeActionResult(string message)
+    {
+        Message = message;
+    }
+
+    public string Message { get; }
+}
+
 public abstract class ValidationComponentBase : IValidationComponent, IValidationAction
 {
     public abstract string Name { get; }
@@ -225,25 +230,61 @@ public abstract class ValidationComponentBase : IValidationComponent, IValidatio
     public abstract string ErrorTemplate { get; protected set; }
     //public IParentScope CurrentParent { get; }
 
-    public void SetDescriptionTemplate(string desc) { DescriptionTemplate = desc; }
-    public void SetErrorTemplate(string error) { ErrorTemplate = error; }
+    public virtual void SetDescriptionTemplate(string desc) { DescriptionTemplate = desc; }
+    public virtual void SetErrorTemplate(string error) { ErrorTemplate = error; }
 
     public ValidationComponentBase()
     {
         //CurrentParent = currentParent;
     }
 
-    public IValidationAction GetValidationAction()
+    public virtual IValidationAction GetValidationAction()
     {
         return this;
     }
 
-    public ValidationActionResult Validate(object? value)
+    public virtual ValidationActionResult Validate(object? value)
     {
         return new ValidationActionResult(
             success: true,
             message: ErrorTemplate
         );
+    }
+
+    public virtual DescribeActionResult Describe()
+    {
+        return new DescribeActionResult(DescriptionTemplate);
+    }
+}
+
+public class ComponentWrapper : ValidationComponentBase
+{
+    private readonly IValidationComponent validation;
+    private readonly IScopeData scopedData;
+
+    public ComponentWrapper(IValidationComponent validation, IScopeData scopedData)
+    {
+        this.validation = validation;
+        this.scopedData = scopedData;
+    }
+
+    public override string Name => validation.Name;
+    public override string DescriptionTemplate { 
+        get { return validation.DescriptionTemplate; }
+        protected set { SetDescriptionTemplate(value); }
+    }
+    public override string ErrorTemplate 
+    { 
+        get { return validation.ErrorTemplate; } 
+        protected set { validation.SetErrorTemplate(value); }
+    }
+
+    public override void SetDescriptionTemplate(string desc) { validation.SetDescriptionTemplate(desc); }
+    public override void SetErrorTemplate(string error) { validation.SetErrorTemplate(error); }
+
+    public override IValidationAction GetValidationAction()
+    {
+        return validation.GetValidationAction();
     }
 }
 
@@ -300,7 +341,7 @@ public interface IParentScope
     string Name { get; }
 }
 
-public interface IValidatorScope : /*IValidatableEntity,*/ IParentScope
+public interface IValidatorScope : IParentScope
 {
     void ExpandToValidate(ValidationConstructionStore store, object? value);
 }
@@ -320,20 +361,21 @@ public abstract class ScopeBase : IValidatorScope, IExpandableEntity
     )
     {
         this.validatorStore = validatorStore;
-        //Parent = parent;
         //Decorator = (item) => new WhenValidationItemDecorator(false, item.FieldDescriptor, this, item);
     }
 
     public virtual void ExpandToValidate(ValidationConstructionStore store, object? value)
     {
-        //validatorStore.PushDecorator((item) => new WhenValidationItemDecorator(false, item.FieldDescriptor, this, item));
-        //validatorStore.PushParent(this);
         InvokeScopeContainer(store, value);
-        //validatorStore.PopParent();
-        //validatorStore.PopDecorator();
+    }
+
+    public void ExpandToDescribe(ValidationConstructionStore store)
+    {
+        InvokeScopeContainerToDescribe(store);
     }
 
     protected abstract void InvokeScopeContainer(ValidationConstructionStore store, object? value);
+    protected abstract void InvokeScopeContainerToDescribe(ValidationConstructionStore store);
 }
 
 public sealed class WhenStringValidator<TValidationType> : ScopeBase
@@ -345,7 +387,6 @@ public sealed class WhenStringValidator<TValidationType> : ScopeBase
     
     public WhenStringValidator(
         ValidationConstructionStore validatorStore,
-        //IParentScope? parent,
         string whenDescription,
         Func<TValidationType, bool> ifTrue,
         Action rules
@@ -354,20 +395,16 @@ public sealed class WhenStringValidator<TValidationType> : ScopeBase
         this.whenDescription = whenDescription;
         this.ifTrue = ifTrue;
         this.rules = rules;
-        Decorator = (item, parent) => new WhenValidationItemDecorator(false, item.FieldDescriptor, parent, item);
+        //Decorator = (item, parent) => new WhenValidationItemDecorator(false, item.FieldDescriptor, parent, item);
     }
-
-    //public override void ExpandToValidate(ValidationConstructionStore store, object? value)
-    //{
-    //    //validatorStore.PushDecorator((item) => new WhenValidationItemDecorator(false, item.FieldDescriptor, this, item));
-    //    //validatorStore.PushParent(this);
-    //    InvokeScopeContainer(value);
-    //    //validatorStore.PopParent();
-    //    //validatorStore.PopDecorator();
-    //}
 
     protected override void InvokeScopeContainer(ValidationConstructionStore store,object? value) { 
         rules.Invoke(); 
+    }
+
+    protected override void InvokeScopeContainerToDescribe(ValidationConstructionStore store)
+    {
+        rules.Invoke();
     }
 }
 
@@ -414,6 +451,11 @@ public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : S
     {
         rules.Invoke(new PassThroughValue<TPassThrough>());
     }
+
+    protected override void InvokeScopeContainerToDescribe(ValidationConstructionStore store)
+    {
+        rules.Invoke(new PassThroughValue<TPassThrough>());
+    }
 }
 
 public sealed class WhenScopeToValidator<TValidationType, TPassThrough> 
@@ -456,6 +498,11 @@ public sealed class WhenScopeToValidator<TValidationType, TPassThrough>
     {
         rules.Invoke(new PassThroughValue<TPassThrough>());
     }
+
+    protected override void InvokeScopeContainerToDescribe(ValidationConstructionStore store)
+    {
+        rules.Invoke(new PassThroughValue<TPassThrough>());
+    }
 }
 
 #endregion
@@ -463,50 +510,17 @@ public sealed class WhenScopeToValidator<TValidationType, TPassThrough>
 #endregion
 
 #region FieldDescriptor
-public class SingleValidationWrapper
-{
-    public bool IsVital { get; }
-    public IValidationComponent ValidationComponent { get; }
-
-    public SingleValidationWrapper(IValidationComponent validationComponent)
-    {
-        ValidationComponent = validationComponent;
-    }
-}
-
-public class FieldDescriptorMomento
-{
-    public IValidatorScope ParentScope { get; }
-    public string PropertyName { get; }
-    public Type PropertyOwner { get; }
-    public Type PropertyType { get; }
-    public List<SingleValidationWrapper> validationWrappers { get; } = new();
-
-    public FieldDescriptorMomento(
-        IValidatorScope parentScope,
-        string propertyName,
-        Type propertyType,
-        Type propertyOwner)
-    {
-        ParentScope = parentScope;
-        PropertyName = propertyName;
-        PropertyType = propertyType;
-        PropertyOwner = propertyOwner;
-    }
-}
 
 public interface IFieldDescriptorOutline
 {
     string PropertyName { get; }
-    Type PropertyOwner { get; }
-    Type PropertyType { get; }
+    string AddTo(string existing);
 }
 
 public interface IFieldDescriptor<TValidationType, TFieldType> : IFieldDescriptorOutline
 {
     PropertyExpressionTokenBase<TValidationType, TFieldType> PropertyToken { get; }
     ValidationConstructionStore Store { get; }
-    //IParentScope ParentScope { get; }
     void AddValidation(IExpandableEntity component);
     
     void NextValidationIsVital();
@@ -519,8 +533,6 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
     private readonly IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor;
     private IExpandableEntity component;
     public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator => null;
-    //public IParentScope Parent => component as IParentScope;
-
 
     public FieldDescriptionExpandableWrapper(
         IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor,
@@ -542,6 +554,16 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
             temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
         }
         component.ExpandToValidate(store, temp);
+    }
+
+    public void ExpandToDescribe(ValidationConstructionStore store)
+    {
+        //TFieldType? temp = default;
+        //if (value is TValidationType result && result != null)
+        //{
+        //    temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
+        //}
+        component.ExpandToDescribe(store);
     }
 }
 
@@ -577,19 +599,15 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
 public class FieldDescriptionNonExpandableWrapper : IExpandableEntity
 {
     private readonly IFieldDescriptorOutline fieldDescriptorOutline;
-    //private readonly IParentScope parentScope;
     private IValidationComponent component;
     public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator => null;
-    //public IParentScope Parent => parentScope;
 
     public FieldDescriptionNonExpandableWrapper(
         IFieldDescriptorOutline fieldDescriptorOutline,
-        //IParentScope parentScope,
         bool isVital, 
         IValidationComponent component)
     {
         this.fieldDescriptorOutline = fieldDescriptorOutline;
-        //this.parentScope = parentScope;
         IsVital = isVital;
         this.component = component;
     }
@@ -598,12 +616,19 @@ public class FieldDescriptionNonExpandableWrapper : IExpandableEntity
 
     public void ExpandToValidate(ValidationConstructionStore store, object? value)
     {
-        //store.AddItem(
         store.AddItem(
             IsVital, 
             fieldDescriptorOutline, 
             component
-            //new ValidatableStoreItem(IsVital, fieldDescriptorOutline, parentScope, component)
+        );
+    }
+
+    public void ExpandToDescribe(ValidationConstructionStore store)
+    {
+        store.AddItem(
+            IsVital,
+            fieldDescriptorOutline,
+            component
         );
     }
 }
@@ -613,10 +638,11 @@ public class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<TVa
     public PropertyExpressionTokenBase<TValidationType, TFieldType> PropertyToken { get; }
 
     public ValidationConstructionStore Store { get; }
-    //public IParentScope ParentScope { get; }
     public string PropertyName => PropertyToken.Name;
-    public Type PropertyOwner => typeof(TValidationType);
-    public Type PropertyType => typeof(TFieldType);
+    public string AddTo(string existing)
+    {
+        return PropertyToken.CombineWithParentProperty(existing);
+    }
 
     protected bool _NextValidationVital{ get; set; } = false;
 
@@ -627,18 +653,16 @@ public class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<TVa
     
     public FieldDescriptor(
         PropertyExpressionTokenBase<TValidationType, TFieldType> propertyToken,
-        //IParentScope parentScope,
         ValidationConstructionStore store) 
     {
         this.PropertyToken = propertyToken;
-        //ParentScope = parentScope;
         Store = store;
     }
 
     public void AddValidation(IExpandableEntity component)
     {
-        Store.AddItem(//component);
-                      //Store.GetCurrentScopeParent(), 
+        Store.AddItem(
+            this,
             new FieldDescriptionExpandableWrapper<TValidationType, TFieldType>(
                 this,
                 _NextValidationVital,
@@ -650,15 +674,6 @@ public class FieldDescriptor<TValidationType, TFieldType> : IFieldDescriptor<TVa
     public void AddValidation(IValidationComponent validation)
     {
         Store.AddItem(_NextValidationVital, this, validation);
-
-        //Store.AddItem( //_NextValidationVital, this, validation);
-        //    //Store.GetCurrentScopeParent(), 
-        //    new FieldDescriptionNonExpandableWrapper(
-        //        this, 
-        //        //ParentScope, 
-        //        _NextValidationVital, 
-        //        validation)
-        //);
         _NextValidationVital = false;
     }
 }
@@ -677,6 +692,19 @@ public class ValidationOutcome
     {
         PropertyName = propertyName;
         this.succeeded = succeeded;
+        Message = message;
+    }
+}
+
+public class DescriptionOutcome
+{
+    public string PropertyName { get; set; }
+    public string? Message { get; }
+    public ValidationGroupResult? Group { get; set; }
+
+    public DescriptionOutcome(string propertyName, string? message)
+    {
+        PropertyName = propertyName;
         Message = message;
     }
 }
@@ -758,6 +786,19 @@ public static partial class IFieldValidatorExtensions
         return fieldDescriptor;
     }
 
+    public static IFieldDescriptor<TValidationType, TFieldType> IsEqualTo<TValidationType, TFieldType>(
+     this IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor,
+     ScopedData<TValidationType, TFieldType> scopedData,
+     Action<ValidationOptions>? optionsAction = null
+     )
+     where TFieldType : IComparable
+    {
+        var validation = new IsEqualToValidation(scopedData);
+        optionsAction?.Invoke(new ValidationOptions(validation));
+        fieldDescriptor.AddValidation(validation);
+        return fieldDescriptor;
+    }
+
     public static IFieldDescriptor<TValidationType, TFieldType> Is<TValidationType, TFieldType>(
         this IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor,
         Func<TFieldType, bool> testFunc,
@@ -791,7 +832,6 @@ public abstract class AbstractValidatorBase <TValidationType>
     {
         Parent = parent;
         Store = store;
-        //Store.PushParent(this);
     }
 
     protected IFieldDescriptor<TValidationType, IEnumerable<TFieldType>> DescribeEnumerable<TFieldType>(
@@ -800,8 +840,6 @@ public abstract class AbstractValidatorBase <TValidationType>
     {
         var fieldDescriptor = new FieldDescriptor<TValidationType, IEnumerable<TFieldType>>(
             new PropertyExpressionToken<TValidationType, IEnumerable<TFieldType>>(expr),
-            //this,
-            //Store.GetCurrentScopeParent(), 
             Store
         );
         return fieldDescriptor;
@@ -811,7 +849,6 @@ public abstract class AbstractValidatorBase <TValidationType>
     {
         var fieldDescriptor = new FieldDescriptor<TValidationType, TFieldType>(
             new PropertyExpressionToken<TValidationType, TFieldType>(expr),
-            //this, 
             Store
         );
         return fieldDescriptor;
@@ -827,7 +864,7 @@ public abstract class AbstractValidatorBase <TValidationType>
             whenDescription, 
             ifTrue, 
             rules);
-        Store.AddItem(context);
+        Store.AddItem(null, context);
     }
 
     public void ScopeWhen<TPassThrough>(
@@ -842,7 +879,7 @@ public abstract class AbstractValidatorBase <TValidationType>
             ifTrue, 
             scoped, 
             rules);
-        Store.AddItem(context);
+        Store.AddItem(null, context);
     }
 
     public void ScopeWhen<TPassThrough>(
@@ -857,7 +894,7 @@ public abstract class AbstractValidatorBase <TValidationType>
             scoped, 
             ifTrue, 
             rules);
-        Store.AddItem(context);
+        Store.AddItem(null, context);
     }
 
     public ValidationConstructionStore Store { get; }
@@ -885,18 +922,22 @@ public abstract class AbstractSubValidator<TValidationType>
 
     public void ExpandToValidate(ValidationConstructionStore store, object? value)
     {
-        //store.PushDecorator((item) => new WhenValidationItemDecorator(false, item.FieldDescriptor, this, item));
-        //store.PushParent(this);
-        //InvokeScopeContainer(value);
-        //store.Merge(Store);
         var expandedItems = Store.ExpandToValidate(value);
         foreach (var item in expandedItems)
         {
             if (item != null)
                 store.AddItemToCurrentScope(item);
         }
-        //store.PopParent();
-        //store.PopDecorator();
+    }
+
+    public void ExpandToDescribe(ValidationConstructionStore store)
+    {
+        var expandedItems = Store.ExpandToDescribe();
+        foreach (var item in expandedItems)
+        {
+            if (item != null)
+                store.AddItemToCurrentScope(item);
+        }
     }
 }
 
@@ -936,9 +977,9 @@ public class SongValidator : AbstractSubValidator<Song>
                    {
                        Describe(x => x.Duration)
                         .IsEqualTo(3.3);
-                           //.Is(AValidDescription,
-                           //    "Should have a valid description",
-                           //    "The description is invalid");
+                       //.Is(AValidDescription,
+                       //    "Should have a valid description",
+                       //    "The description is invalid");
                    });
             });
     }
@@ -967,11 +1008,17 @@ public static partial class IFieldValidatorExtensions
     {
         var forEachScope = new ForEachScope<TClassType, TPropertyType>(
             fieldDescriptor,
+            //null,
             actions
         );
         fieldDescriptor.AddValidation(forEachScope);
         return fieldDescriptor;
     }
+}
+
+public class RepositoryFake
+{
+    public static string GetValue(Album value) { return value.Name + " Retrieved From Repository"; }
 }
 
 public class AlbumValidator : AbstractValidator<Album>
@@ -981,14 +1028,19 @@ public class AlbumValidator : AbstractValidator<Album>
         Describe(x => x.Name)
         .NotNull();
 
-        When("Soemthing", (x) => true, () =>
+        ScopeWhen(
+            "Soemthing",
+            (x) => true,
+            (Album value) => RepositoryFake.GetValue(value),
+            (scopeData) =>
         {
-            //Describe(x => x.Name)
-            //    .NotNull();
-            When("another somethign", (x) => true, () =>
+            When(
+                "another somethign", 
+                (x) => true, 
+                () =>
             {
                 DescribeEnumerable(x => x.Songs)
-                    .Vitally().NotNull()
+                    .Vitally().IsEqualTo(scopeData)
                     .ForEach(x => x
                         .Vitally().NotNull()
                         .SetValidator(new SongValidator())
@@ -1011,9 +1063,21 @@ public class ValidationItemResult
     }
 }
 
+public class DescriptionItemResult
+{
+    public string Property { get; }
+    public List<DescriptionOutcome> Outcomes { get; } = new();
+
+
+    public DescriptionItemResult(string property)
+    {
+        Property = property;
+    }
+}
+
 public class ValidationGroupResult 
 {
-    //[JsonIgnore]
+    [JsonIgnore]
     public Guid Id { get; }
     [JsonIgnore]
     public IParentScope ParentScope { get; }
@@ -1038,9 +1102,6 @@ public class ValidationResult
     public void AddItem(IValidatableStoreItem item, ValidationActionResult outcome)
     {
         var scopes = new List<IParentScope>();
-
-        //if( item.ScopeParent?.CurrentScope is not null)
-        //    scopes.Add(item.ScopeParent.CurrentScope);
 
         var child = item.ScopeParent;
         while (child != null)
@@ -1078,7 +1139,50 @@ public class ValidationResult
     }
 }
 
-public class DescriptionResult { }
+public class DescriptionResult 
+{
+    public List<DescriptionItemResult> Results = new();
+
+    public void AddItem(IValidatableStoreItem item, DescribeActionResult outcome)
+    {
+        var scopes = new List<IParentScope>();
+
+        var child = item.ScopeParent;
+        while (child != null)
+        {
+            if (child.CurrentScope != null)
+            {
+                scopes.Add(child.CurrentScope);
+            }
+            child = child.PreviousScope;
+        }
+
+        var existingProperty = Results.SingleOrDefault(r => r.Property == item.FieldDescriptor.PropertyName);
+        var newOutcome = new DescriptionOutcome(item.FieldDescriptor.PropertyName, outcome.Message);
+        if (existingProperty != null)
+        {
+            existingProperty.Outcomes.Add(newOutcome);
+        }
+        else
+        {
+            existingProperty = new DescriptionItemResult(item.FieldDescriptor.PropertyName);
+            existingProperty.Outcomes.Add(newOutcome);
+
+            Results.Add(existingProperty);
+        }
+
+        if (scopes.Count > 0)
+        {
+            ValidationGroupResult? group = null;
+            foreach (var scope in scopes)
+            {
+                group = new ValidationGroupResult(scope, group);
+            }
+            newOutcome.Group = group;
+        }
+    }
+
+}
 
 public class ValidationRunner<TValidationType>
 {
@@ -1106,7 +1210,7 @@ public class ValidationRunner<TValidationType>
         }
 
         var groupedItems = allItems
-            .GroupBy(x => new { x.FieldDescriptor.PropertyOwner.Name, x.FieldDescriptor.PropertyName });
+            .GroupBy(x => new { x.FieldDescriptor.PropertyName });
 
         foreach (var validationObjectGroup in groupedItems)
         {
@@ -1115,7 +1219,7 @@ public class ValidationRunner<TValidationType>
                 var result = propertyGroup.GetValidationAction().Validate(null);
                 //if (!result.Success)
                 {
-                    validationResult.AddItem(propertyGroup, result);// propertyGroup.ParentScope, result.Result);
+                    validationResult.AddItem(propertyGroup, result);
 
                     if (propertyGroup.IsVital) break;
                 }
@@ -1125,9 +1229,37 @@ public class ValidationRunner<TValidationType>
         return validationResult;
     }
 
-    public DescriptionResult Describe() {
+    public DescriptionResult Describe() 
+    {
+        var descriptionResult = new DescriptionResult();
+        var store = new ValidationConstructionStore();
+        var executionStore = new ValidationExecutionStore();
+        var allItems = new List<IValidatableStoreItem>();
 
-        return new DescriptionResult();
+        foreach (var mainValidator in mainValidators)
+        {
+            var expandedItems = mainValidator.Store.ExpandToDescribe();
+            if (expandedItems?.Any() == true)
+            {
+                allItems.AddRange(expandedItems);
+            }
+        }
+
+        var groupedItems = allItems
+            .GroupBy(x => new { x.FieldDescriptor.PropertyName });
+
+        foreach (var validationObjectGroup in groupedItems)
+        {
+            foreach (var propertyGroup in validationObjectGroup)
+            {
+                var result = propertyGroup.GetValidationAction().Describe();
+                descriptionResult.AddItem(propertyGroup, result);
+
+                if (propertyGroup.IsVital) break;
+            }
+        }
+
+        return descriptionResult;
     }
 }
 

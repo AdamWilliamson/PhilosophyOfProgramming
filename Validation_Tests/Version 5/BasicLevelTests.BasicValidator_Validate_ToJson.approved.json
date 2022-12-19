@@ -1,43 +1,135 @@
 ﻿{
     "results": [
         {
-            "property": "TrackName",
+            "property": "Name",
             "outcomes": [
                 {
-                    "isFailed": true,
-                    "isSucceeded": false,
-                    "propertyName": "TrackName",
-                    "message": "Is not equal to value",
+                    "isFailed": false,
+                    "isSucceeded": true,
+                    "propertyName": "Name",
+                    "message": "Is no null",
                     "group": null
                 }
             ]
         },
         {
-            "property": "Duration",
+            "property": "Songs",
             "outcomes": [
                 {
-                    "isFailed": true,
-                    "isSucceeded": false,
-                    "propertyName": "Duration",
+                    "isFailed": false,
+                    "isSucceeded": true,
+                    "propertyName": "Songs",
+                    "message": "Is no null",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": null
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[0]",
+            "outcomes": [
+                {
+                    "isFailed": false,
+                    "isSucceeded": true,
+                    "propertyName": "Songs[0]",
+                    "message": "Is no null",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": null
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[0].TrackName",
+            "outcomes": [
+                {
+                    "isFailed": false,
+                    "isSucceeded": true,
+                    "propertyName": "Songs[0].TrackName",
+                    "message": "Is not equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": null
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[0].Duration",
+            "outcomes": [
+                {
+                    "isFailed": false,
+                    "isSucceeded": true,
+                    "propertyName": "Songs[0].Duration",
                     "message": "Duration Error Message.",
                     "group": {
-                        "name": "TrackNumber is 1",
-                        "description": "TrackNumber is 1",
-                        "group": null
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": {
+                                    "name": "TrackNumber is 1",
+                                    "description": "TrackNumber is 1",
+                                    "group": null
+                                }
+                            }
+                        }
                     }
                 },
                 {
-                    "isFailed": true,
-                    "isSucceeded": false,
-                    "propertyName": "Duration",
-                    "message": "The description is invalid",
+                    "isFailed": false,
+                    "isSucceeded": true,
+                    "propertyName": "Songs[0].Duration",
+                    "message": "Is not equal to value",
                     "group": {
-                        "name": "TrackNumber is 1",
-                        "description": "TrackNumber is 1",
+                        "name": "Soemthing",
+                        "description": "Soemthing",
                         "group": {
-                            "name": "TrackNumber is not 100",
-                            "description": "TrackNumber is not 100",
-                            "group": null
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": {
+                                    "name": "TrackNumber is 1",
+                                    "description": "TrackNumber is 1",
+                                    "group": {
+                                        "name": "TrackNumber is not 100",
+                                        "description": "TrackNumber is not 100",
+                                        "group": null
+                                    }
+                                }
+                            }
                         }
                     }
                 }

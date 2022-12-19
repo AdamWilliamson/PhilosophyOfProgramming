@@ -9,7 +9,8 @@ public interface IExpandableEntity
     Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator { get; }
     //IParentScope Parent { get; }
     void ExpandToValidate(ValidationConstructionStore store, object? value);
-  
+    void ExpandToDescribe(ValidationConstructionStore store);
+
 }
 
 //public interface IConstructionStoreListItem : IExpandableEntity
@@ -21,6 +22,7 @@ public interface IExpandableEntity
 public interface IStoreItem 
 {
     ScopeParent ScopeParent { get; }
+    IFieldDescriptorOutline? FieldDescriptor { get; }
 }
 public interface IExpandableStoreItem : IStoreItem, IExpandableEntity
 {
@@ -31,22 +33,29 @@ public class ExpandableStoreItem : IExpandableStoreItem
 {
     public ExpandableStoreItem(
         ScopeParent scopeParent,
+        IFieldDescriptorOutline? fieldDescriptor,
         IExpandableEntity component
     )
     {
         ScopeParent = scopeParent;
+        FieldDescriptor = fieldDescriptor;
         Component = component;
     }
 
     public ScopeParent ScopeParent { get; }
     public IExpandableEntity Component { get; }
-
+    public IFieldDescriptorOutline? FieldDescriptor { get; }
     public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator => Component.Decorator;
     //public IParentScope Parent => Component.Parent;
 
     public void ExpandToValidate(ValidationConstructionStore store, object? value)
     {
         Component.ExpandToValidate(store, value);
+    }
+
+    public void ExpandToDescribe(ValidationConstructionStore store)
+    {
+        Component.ExpandToDescribe(store);
     }
 }
 public interface IValidatableStoreItem : IStoreItem 
@@ -137,6 +146,7 @@ public class ValidationConstructionStore
     public List<IStoreItem> unExpandedItems = new();
     private Stack<Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>?> Decorators = new();
     private Stack<ScopeParent> ScopeParents = new();
+    private Stack<IFieldDescriptorOutline> FieldParents = new();
 
     public ScopeParent? GetCurrentScopeParent()
     {
@@ -169,10 +179,10 @@ public class ValidationConstructionStore
         Decorators.Pop();
     }
 
-    public void AddItem(IExpandableEntity component)
+    public void AddItem(IFieldDescriptorOutline? fieldDescriptor, IExpandableEntity component)
     {
         var scopeParent = new ScopeParent(component as IParentScope, GetCurrentScopeParent());
-        IExpandableStoreItem decoratedItem = new ExpandableStoreItem(scopeParent, component);
+        IExpandableStoreItem decoratedItem = new ExpandableStoreItem(scopeParent, fieldDescriptor, component);
         unExpandedItems.Add(decoratedItem);
     }
 
@@ -200,7 +210,8 @@ public class ValidationConstructionStore
         IStoreItem? decoratedItem = null;
         if (storeItem is IExpandableStoreItem expandable && expandable is not null)
         {
-            AddItem(expandable.Component);
+            
+            AddItem(GenerateName(expandable.FieldDescriptor), expandable.Component);
             //decoratedItem = new ExpandableStoreItem(GetCurrentScopeParent(), expandable.Component);
         }
         else if (storeItem is IValidatableStoreItem validatable)
@@ -208,7 +219,7 @@ public class ValidationConstructionStore
             //PushParent(validatable.ScopeParent?.CurrentScope);
             int pushedParents = PushParentTree(validatable.ScopeParent);
             AddItem(validatable.IsVital,
-                validatable.FieldDescriptor,
+                GenerateName(validatable.FieldDescriptor),
                 validatable.Component);
             //PopParent();
             PopCount(pushedParents);
@@ -301,6 +312,77 @@ public class ValidationConstructionStore
         return results;
     }
 
+    internal List<IValidatableStoreItem> ExpandToDescribe()
+    {
+        PushParent(null);
+        var originalItems = unExpandedItems.ToList();
+        unExpandedItems = new();
+        var results = new List<IValidatableStoreItem>();
+
+        foreach (var item in originalItems)
+        {
+            //item.ExpandToValidate(this);
+            var funcResults = ExpandToDescribeRecursive(item);
+            if (funcResults?.Any() == true)
+            {
+                results.AddRange(funcResults);
+            }
+        }
+
+        return results;
+    }
+
+    internal List<IValidatableStoreItem> ExpandToDescribeRecursive(
+        IStoreItem storeItem
+        )
+    {
+        var results = new List<IValidatableStoreItem>();
+
+        if (storeItem is IValidatableStoreItem converted) { return new() { converted }; }
+        else if (storeItem is IExpandableStoreItem expandable)
+        {
+            PushDecorator(expandable.Decorator);
+            PushParent(expandable.ScopeParent?.CurrentScope);
+            FieldParents.Push(storeItem.FieldDescriptor);
+
+            expandable.ExpandToDescribe(this);
+            var copyNewUnExpanded = unExpandedItems.ToList();
+            unExpandedItems = new();
+
+            foreach (var item in copyNewUnExpanded)
+            {
+                var recursiveResponse = ExpandToDescribeRecursive(item);
+                if (recursiveResponse?.Any() == true)
+                {
+                    results.AddRange(recursiveResponse
+                        .Select(x => new ValidatableStoreItem(
+                            x.IsVital,
+                            x.FieldDescriptor,
+                            x.ScopeParent,
+                            x.Component))
+                        );
+                }
+            }
+
+            FieldParents.Pop();
+            PopParent();
+            PopDecorator();
+        }
+
+        return results;
+    }
+
+    private ValidationFieldDescriptorOutline GenerateName(IFieldDescriptorOutline? outline)
+    {
+        if (outline == null) return null;
+        //string name = string.Join(".", FieldParents.Where(x => x is not null));
+        if (!FieldParents.Where(x => x is not null).Any())
+            return new ValidationFieldDescriptorOutline(outline.PropertyName);
+
+        var ownerField = FieldParents.Where(x => x is not null).First();
+        return new ValidationFieldDescriptorOutline(outline.AddTo(ownerField.PropertyName));
+    }
+
     internal List<IValidatableStoreItem> ExpandToValidateRecursive<TValidationType>(
         IStoreItem storeItem,
         TValidationType? instance
@@ -313,6 +395,7 @@ public class ValidationConstructionStore
         {
             PushDecorator(expandable.Decorator);
             PushParent(expandable.ScopeParent?.CurrentScope);
+            FieldParents.Push(storeItem.FieldDescriptor);
 
             expandable.ExpandToValidate(this, instance);
             var copyNewUnExpanded = unExpandedItems.ToList();
@@ -323,14 +406,36 @@ public class ValidationConstructionStore
                 var recursiveResponse = ExpandToValidateRecursive(item, instance);
                 if (recursiveResponse?.Any() == true)
                 {
-                    results.AddRange(recursiveResponse);
+                    results.AddRange(recursiveResponse
+                        .Select(x => new ValidatableStoreItem(
+                            x.IsVital,
+                            x.FieldDescriptor, 
+                            x.ScopeParent, 
+                            x.Component))
+                        );
                 }
             }
 
-            PopDecorator();
+            FieldParents.Pop();
             PopParent();
+            PopDecorator();
         }
 
         return results;
+    }
+
+    class ValidationFieldDescriptorOutline : IFieldDescriptorOutline
+    {
+        public ValidationFieldDescriptorOutline(string propertyName)
+        {
+            PropertyName = propertyName;
+        }
+
+        public string PropertyName { get; }
+
+        public string AddTo(string existing)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

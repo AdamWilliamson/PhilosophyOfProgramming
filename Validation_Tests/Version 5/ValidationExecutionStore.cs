@@ -8,7 +8,7 @@ namespace Validations_Tests.Version_5;
 public interface IValidationScopeExecutionStoreItem
 {
     IParentScope ParentScope { get; }
-    string OwningType { get; }
+    //string OwningType { get; }
     string PropertyName { get; }
     bool IsVital { get; }
 
@@ -36,7 +36,7 @@ public sealed class ValidatableEntityExecutionStoreItem : IValidationScopeExecut
 
     public bool IsVital { get; set; }
 
-    public string OwningType => FieldDescriptorOutline.PropertyOwner.Name;
+    //public string OwningType => FieldDescriptorOutline.PropertyOwner.Name;
 
     public string PropertyName => FieldDescriptorOutline.PropertyName;
 
