@@ -10,6 +10,7 @@ public interface IExpandableEntity
     //IParentScope Parent { get; }
     void ExpandToValidate(ValidationConstructionStore store, object? value);
     void ExpandToDescribe(ValidationConstructionStore store);
+    void AsVital();
 
 }
 
@@ -42,6 +43,11 @@ public class ExpandableStoreItem : IExpandableStoreItem
         Component = component;
     }
 
+    public void AsVital()
+    {
+        Component.AsVital();
+    }
+
     public ScopeParent ScopeParent { get; }
     public IExpandableEntity Component { get; }
     public IFieldDescriptorOutline? FieldDescriptor { get; }
@@ -62,22 +68,27 @@ public interface IValidatableStoreItem : IStoreItem
 {
     bool IsVital { get; }
     ScopeParent? ScopeParent { get; }
-    IValidationAction? GetValidationAction();
+    IValidationComponent? GetValidationAction();
     IValidatableStoreItem? GetChild();
+    FieldExecutor CurrentFieldExecutor { get; }
+    void SetParent(FieldExecutor fieldExecutor);
     IFieldDescriptorOutline FieldDescriptor { get; }
     IValidationComponent Component { get; }
+    object? GetValue(object? value);
 }
 
 public class ValidatableStoreItem : IValidatableStoreItem
 {
     public ValidatableStoreItem(
         bool isVital,
+        FieldExecutor currentFieldExecutor,
         IFieldDescriptorOutline fieldDescriptor,
         ScopeParent scopeParent,
         IValidationComponent component
     )
     {
         IsVital = isVital;
+        CurrentFieldExecutor = currentFieldExecutor;
         FieldDescriptor = fieldDescriptor;
         ScopeParent = scopeParent;
         Component = component;
@@ -85,12 +96,14 @@ public class ValidatableStoreItem : IValidatableStoreItem
 
     public ValidatableStoreItem(
         bool isVital,
+        FieldExecutor currentFieldExecutor,
         IFieldDescriptorOutline fieldDescriptor,
         ScopeParent scopeParent,
         IValidatableStoreItem childStoreItem
 )
     {
         IsVital = isVital;
+        CurrentFieldExecutor = currentFieldExecutor;
         FieldDescriptor = fieldDescriptor;
         ScopeParent = scopeParent;
         ChildStoreItem = childStoreItem;
@@ -98,24 +111,94 @@ public class ValidatableStoreItem : IValidatableStoreItem
     }
 
     public bool IsVital { get; }
+    public FieldExecutor CurrentFieldExecutor { get; protected set; }
     public IFieldDescriptorOutline FieldDescriptor { get; }
     public ScopeParent? ScopeParent { get; }
+    public void SetParent(FieldExecutor fieldExecutor)
+    {
+        if(CurrentFieldExecutor == null)
+        {
+            CurrentFieldExecutor = new FieldExecutor(fieldExecutor, FieldDescriptor);
+        }
+        else
+        {
+            CurrentFieldExecutor.SetParent(fieldExecutor);
+        }
+    }
     public IValidatableStoreItem? ChildStoreItem { get; }
     public IValidationComponent? Component { get; }
 
-    public IValidationAction? GetValidationAction()
+    public IValidationComponent? GetValidationAction()
     {
         if (ChildStoreItem != null)
         {
             return ChildStoreItem.GetValidationAction();
         }
 
-        return Component?.GetValidationAction();
+        return Component;//?.GetValidationAction();
     }
 
     public IValidatableStoreItem? GetChild()
     {
         return ChildStoreItem;
+    }
+
+    public object? GetValue(object? value)
+    {
+        if (CurrentFieldExecutor != null)
+        {
+            return FieldDescriptor.GetValue(CurrentFieldExecutor.GetValue(value));
+        }
+        return FieldDescriptor.GetValue(value);
+    }
+}
+
+public class FieldExecutor
+{
+    object? RetrievedValue = null;
+    bool ValueHasBeenRetrieved = false;
+
+    public FieldExecutor(
+        FieldExecutor? parent,
+        IFieldDescriptorOutline fieldDescriptor
+    )
+    {
+        Parent = parent;
+        FieldDescriptor = fieldDescriptor;
+    }
+
+    public void SetParent(FieldExecutor? newParent)
+    {
+        if (Parent == null)
+        {
+            Parent = newParent;
+        }
+        else
+        {
+            Parent.SetParent(newParent);
+        }
+    }
+
+    public FieldExecutor? Parent { get; protected set; }
+    public IFieldDescriptorOutline FieldDescriptor { get; }
+
+    public object? GetValue(object? value)
+    {
+        if (ValueHasBeenRetrieved) return RetrievedValue;
+
+        object? result;
+
+        if (Parent != null)
+        {
+            result = FieldDescriptor.GetValue(Parent.GetValue(value));
+            
+        }
+        else
+            result = FieldDescriptor.GetValue(value);
+
+        RetrievedValue = result;
+        ValueHasBeenRetrieved = true;
+        return result;
     }
 }
 
@@ -147,6 +230,34 @@ public class ValidationConstructionStore
     private Stack<Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>?> Decorators = new();
     private Stack<ScopeParent> ScopeParents = new();
     private Stack<IFieldDescriptorOutline> FieldParents = new();
+    private Stack<FieldExecutor> FieldExecutors = new();
+    
+    public FieldExecutor? GetCurrentFieldExecutor(IFieldDescriptorOutline ignore = null)
+    {
+        if (FieldExecutors.Any())
+            return FieldExecutors
+                .Where(x => x is not null)
+                .Where(x => x.FieldDescriptor != ignore)
+                .FirstOrDefault();
+        return null;
+    }
+
+    public void PushFieldDescriptor(IFieldDescriptorOutline fieldDescriptor)
+    {
+        FieldParents.Push(fieldDescriptor);
+        FieldExecutors.Push(
+            new FieldExecutor(
+                GetCurrentFieldExecutor(fieldDescriptor), 
+                fieldDescriptor
+            )
+        );
+    }
+
+    public void PopFieldDescriptor()
+    {
+        FieldParents.Pop();
+        FieldExecutors.Pop();
+    }
 
     public ScopeParent? GetCurrentScopeParent()
     {
@@ -218,10 +329,14 @@ public class ValidationConstructionStore
         {
             //PushParent(validatable.ScopeParent?.CurrentScope);
             int pushedParents = PushParentTree(validatable.ScopeParent);
+            validatable.SetParent(GetCurrentFieldExecutor());
+            FieldExecutors.Push(validatable.CurrentFieldExecutor);
+
             AddItem(validatable.IsVital,
                 GenerateName(validatable.FieldDescriptor),
                 validatable.Component);
             //PopParent();
+            FieldExecutors.Pop();
             PopCount(pushedParents);
             //decoratedItem = new ValidatableStoreItem(
             //    validatable.IsVital,
@@ -263,23 +378,24 @@ public class ValidationConstructionStore
         IValidationComponent component)
     {
         IValidatableStoreItem decoratedItem = new ValidatableStoreItem(
-            isVital, 
+            isVital,
+            GetCurrentFieldExecutor(),
             fieldDescriptor, 
             GetCurrentScopeParent(), 
             component);
 
-        foreach (var decorator in Decorators.Where(d => d is not null))
-        {
-            if (decoratedItem != null)// && decoratedItem is IValidationComponent converted)
-            {
-                //IValidatableStoreItem newItem = new ValidatableStoreItem(isVital,fieldDescriptor, currentParent, converted);
-                //if (newItem != null)
-                {
-                    var result=  decorator?.Invoke(decoratedItem, GetCurrentScopeParent());
-                    if (result != null) decoratedItem = result;
-                }
-            }
-        }
+        //foreach (var decorator in Decorators.Where(d => d is not null))
+        //{
+        //    if (decoratedItem != null)// && decoratedItem is IValidationComponent converted)
+        //    {
+        //        //IValidatableStoreItem newItem = new ValidatableStoreItem(isVital,fieldDescriptor, currentParent, converted);
+        //        //if (newItem != null)
+        //        {
+        //            var result=  decorator?.Invoke(decoratedItem, GetCurrentScopeParent());
+        //            if (result != null) decoratedItem = result;
+        //        }
+        //    }
+        //}
         //expandedItems.Add(decoratedItem);
         AddItem( decoratedItem);
         //unExpandedItems.Add(decoratedItem);
@@ -343,7 +459,9 @@ public class ValidationConstructionStore
         {
             PushDecorator(expandable.Decorator);
             PushParent(expandable.ScopeParent?.CurrentScope);
-            FieldParents.Push(storeItem.FieldDescriptor);
+            if (storeItem.FieldDescriptor != null)
+                PushFieldDescriptor(storeItem.FieldDescriptor);
+            //FieldParents.Push(storeItem.FieldDescriptor);
 
             expandable.ExpandToDescribe(this);
             var copyNewUnExpanded = unExpandedItems.ToList();
@@ -357,6 +475,7 @@ public class ValidationConstructionStore
                     results.AddRange(recursiveResponse
                         .Select(x => new ValidatableStoreItem(
                             x.IsVital,
+                            GetCurrentFieldExecutor(),
                             x.FieldDescriptor,
                             x.ScopeParent,
                             x.Component))
@@ -364,7 +483,9 @@ public class ValidationConstructionStore
                 }
             }
 
-            FieldParents.Pop();
+            //FieldParents.Pop();
+            if (storeItem.FieldDescriptor != null)
+                PopFieldDescriptor();
             PopParent();
             PopDecorator();
         }
@@ -377,10 +498,10 @@ public class ValidationConstructionStore
         if (outline == null) return null;
         //string name = string.Join(".", FieldParents.Where(x => x is not null));
         if (!FieldParents.Where(x => x is not null).Any())
-            return new ValidationFieldDescriptorOutline(outline.PropertyName);
+            return new ValidationFieldDescriptorOutline(outline.PropertyName, outline);
 
         var ownerField = FieldParents.Where(x => x is not null).First();
-        return new ValidationFieldDescriptorOutline(outline.AddTo(ownerField.PropertyName));
+        return new ValidationFieldDescriptorOutline(outline.AddTo(ownerField.PropertyName), outline);
     }
 
     internal List<IValidatableStoreItem> ExpandToValidateRecursive<TValidationType>(
@@ -395,7 +516,9 @@ public class ValidationConstructionStore
         {
             PushDecorator(expandable.Decorator);
             PushParent(expandable.ScopeParent?.CurrentScope);
-            FieldParents.Push(storeItem.FieldDescriptor);
+            //FieldParents.Push(storeItem.FieldDescriptor);
+            if (storeItem.FieldDescriptor != null)
+                PushFieldDescriptor(storeItem.FieldDescriptor);
 
             expandable.ExpandToValidate(this, instance);
             var copyNewUnExpanded = unExpandedItems.ToList();
@@ -409,6 +532,7 @@ public class ValidationConstructionStore
                     results.AddRange(recursiveResponse
                         .Select(x => new ValidatableStoreItem(
                             x.IsVital,
+                            x.CurrentFieldExecutor,
                             x.FieldDescriptor, 
                             x.ScopeParent, 
                             x.Component))
@@ -416,7 +540,9 @@ public class ValidationConstructionStore
                 }
             }
 
-            FieldParents.Pop();
+            if (storeItem.FieldDescriptor != null)
+                PopFieldDescriptor();
+            //FieldParents.Pop();
             PopParent();
             PopDecorator();
         }
@@ -426,9 +552,12 @@ public class ValidationConstructionStore
 
     class ValidationFieldDescriptorOutline : IFieldDescriptorOutline
     {
-        public ValidationFieldDescriptorOutline(string propertyName)
+        private readonly IFieldDescriptorOutline outline;
+
+        public ValidationFieldDescriptorOutline(string propertyName, IFieldDescriptorOutline outline)
         {
             PropertyName = propertyName;
+            this.outline = outline;
         }
 
         public string PropertyName { get; }
@@ -436,6 +565,11 @@ public class ValidationConstructionStore
         public string AddTo(string existing)
         {
             throw new NotImplementedException();
+        }
+
+        public object? GetValue(object? input)
+        {
+            return outline.GetValue(input);
         }
     }
 }

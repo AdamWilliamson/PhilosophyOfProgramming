@@ -15,7 +15,7 @@
             "outcomes": [
                 {
                     "propertyName": "Songs",
-                    "message": "Must not be null",
+                    "message": "Must equal to value",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",

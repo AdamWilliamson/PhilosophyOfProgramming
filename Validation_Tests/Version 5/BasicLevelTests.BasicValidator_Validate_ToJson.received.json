@@ -1,0 +1,60 @@
+﻿{
+    "results": [
+        {
+            "property": "Songs[0].TrackName",
+            "outcomes": [
+                {
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "Songs[0].TrackName",
+                    "message": "Is not equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": null
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[0].Duration",
+            "outcomes": [
+                {
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "Songs[0].Duration",
+                    "message": "Is not equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": {
+                                    "name": "TrackNumber is 1",
+                                    "description": "TrackNumber is 1",
+                                    "group": {
+                                        "name": "TrackNumber is not 100",
+                                        "description": "TrackNumber is not 100",
+                                        "group": null
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

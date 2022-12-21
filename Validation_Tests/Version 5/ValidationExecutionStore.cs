@@ -17,7 +17,7 @@ public interface IValidationScopeExecutionStoreItem
 
 public sealed class ValidatableEntityExecutionStoreItem : IValidationScopeExecutionStoreItem
 {
-    private IValidationAction ValidationAction { get; }
+    private IValidationComponent ValidationAction { get; }
     public IParentScope ParentScope { get; }
     private IFieldDescriptorOutline FieldDescriptorOutline { get; }
 
@@ -25,7 +25,7 @@ public sealed class ValidatableEntityExecutionStoreItem : IValidationScopeExecut
         IFieldDescriptorOutline fieldDescriptorOutline,
         bool isVital,
         IParentScope scope,
-        IValidationAction validationComponent
+        IValidationComponent validationComponent
     )
     {
         FieldDescriptorOutline = fieldDescriptorOutline;
@@ -77,7 +77,7 @@ public class ValidationExecutionStore
         IFieldDescriptorOutline fieldDescriptorOutline,
         bool isVital,
         IParentScope scope,
-        IValidationAction validationComponent)
+        IValidationComponent validationComponent)
     {
         expandedItems.Add(new ValidatableEntityExecutionStoreItem(
             fieldDescriptorOutline,
