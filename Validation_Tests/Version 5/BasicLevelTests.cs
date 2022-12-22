@@ -166,7 +166,10 @@ public class IndexedPropertyExpressionToken<TInput, TOutput>
 
 public interface IScopeData
 {
-    object? GetValue(object instance);
+    void ReHome(IFieldDescriptorOutline fieldDescriptorOutline);
+    Task Init(object? instance);
+    object? GetValue();
+    void SetParent(IScopeData parent);
 }
 
 public interface IScopeData<TResponse> : IScopeData { }
@@ -174,34 +177,65 @@ public interface IScopeData<TResponse> : IScopeData { }
 public class ScopedData<TPassThrough, TResponse> : IScopeData
     //where TPassThrough : class
 {
-    private Func<TPassThrough, TResponse> PassThroughFunction { get; }
+    private Func<TPassThrough, Task<TResponse>> PassThroughFunction { get; }
     protected IScopeData Parent { get; set; }
+    TResponse RetrievedValue;
 
-    public ScopedData(Func<TPassThrough, TResponse> passThroughFunction)
+    public ScopedData(Func<TPassThrough, Task<TResponse>> passThroughFunction)
     {
         PassThroughFunction = passThroughFunction;
     }
 
-    public ScopedData(IScopeData parent, Func<TPassThrough, TResponse> passThroughFunction)
+    public ScopedData(IScopeData parent, Func<TPassThrough, Task<TResponse>> passThroughFunction)
     {
         Parent = parent;
         PassThroughFunction = passThroughFunction;
     }
 
-    public object? GetValue(object instance)
+    public void SetParent(IScopeData parent)
+    {
+        if (Parent == null)
+        {
+            Parent = parent;
+        }
+        else
+        {
+            Parent.SetParent(parent);
+        }
+    }
+
+    public void ReHome(IFieldDescriptorOutline fieldDescriptorOutline)
+    {
+        if (fieldDescriptorOutline == null) return;
+
+        SetParent(
+            new ScopedData<object?, Task<TPassThrough>>(
+                async (object? instance) => 
+                    Task.FromResult((TPassThrough)fieldDescriptorOutline.GetValue(instance))
+            )
+        );
+    }
+
+    public async Task Init(object? instance)
     {
         if (Parent != null)
         {
-            var result = Parent.GetValue(instance);
-            return PassThroughFunction.Invoke((TPassThrough)result);
+            await Parent.Init(instance);
+            var parentValue = Parent.GetValue();
+            RetrievedValue = await PassThroughFunction.Invoke((TPassThrough)parentValue);
         }
 
-        return PassThroughFunction.Invoke((TPassThrough)instance);
+        RetrievedValue =  await PassThroughFunction.Invoke((TPassThrough)instance);
+    }
+
+    public object? GetValue()
+    {
+        return RetrievedValue;
     }
 
     // scopeData.To(x => x.Y);
     public ScopedData<TPassThrough, TNewResponse> To<TNewResponse>(
-        Func<TPassThrough, TNewResponse> passThroughFunction
+        Func<TPassThrough, Task<TNewResponse>> passThroughFunction
     )
     {
         return new ScopedData<TPassThrough, TNewResponse>(this, passThroughFunction);
@@ -226,8 +260,10 @@ public interface IValidationComponent
     void SetErrorTemplate(string message);
 
     //IValidationAction GetValidationAction();
+    Task InitScopes(object? instance);
     ValidationActionResult Validate(object? value);
     DescribeActionResult Describe();
+    void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor);
 }
 
 public class ValidationActionResult
@@ -277,6 +313,8 @@ public abstract class ValidationComponentBase : IValidationComponent//, IValidat
     //    return this;
     //}
 
+    public virtual void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor) { }
+    public virtual Task InitScopes(object? instance) { return Task.CompletedTask; }
     public abstract ValidationActionResult Validate(object? value);
     //{
 
@@ -347,7 +385,7 @@ public abstract class ValidationComponentBase : IValidationComponent//, IValidat
 public class IsEqualToValidation : ValidationComponentBase //: ValidationBase<IComparable>
 {
     private const string ValueToken = "value";
-    private IComparable? Value { get; }
+    private IComparable? Value { get; set; }
     private readonly IScopeData scopedData;
 
     public IsEqualToValidation(IScopeData scopedData)
@@ -364,16 +402,30 @@ public class IsEqualToValidation : ValidationComponentBase //: ValidationBase<IC
     public override string DescriptionTemplate { get; protected set; } = $"Must equal to {ValueToken}";
     public override string ErrorTemplate { get; protected set; } = $"Is not equal to {ValueToken}";
 
+    //public override async Task InitScopes(object? instance)
+    //{
+    //    Value = scopedData switch
+    //    {
+    //        null => Value,
+    //        _ => (IComparable) await scopedData.GetValue(instance)
+    //    };
+    //}
+
+    public override void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor)
+    {
+        scopedData?.ReHome(attemptedScopeFieldDescriptor);
+    }
+
     public override ValidationActionResult Validate(object? value)
     {
         Debug.WriteLine("IsEqualTo - Validate: " + value?.ToString());
-        var realValue = scopedData switch
+        var RealValue = scopedData switch
         {
-            null => value,
-            _ => scopedData.GetValue(value)
+            null => Value,
+            _ => (IComparable)scopedData.GetValue()
         };
 
-        if (Value.Equals(realValue))
+        if (RealValue.Equals(value))
         {
             return new ValidationActionResult(
                 success: true,
@@ -463,11 +515,12 @@ public interface IValidatorScope : IParentScope
 
 public abstract class ScopeBase : IValidatorScope, IExpandableEntity
 {
+    public virtual bool IgnoreScope => false;
     protected readonly ValidationConstructionStore validatorStore;
     public Guid Id { get; } = Guid.NewGuid();
     public IParentScope? Parent => this;
     public abstract string Name { get; }
-    public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator { get; protected set; } = null;
+    public Func<IValidatableStoreItem, IValidatableStoreItem>? Decorator { get; protected set; } = null;
     protected bool IsVital = false;
     public void AsVital() { IsVital = true; }
 
@@ -493,24 +546,44 @@ public abstract class ScopeBase : IValidatorScope, IExpandableEntity
     protected abstract void InvokeScopeContainerToDescribe(ValidationConstructionStore store);
 }
 
+public class WhenStringValidator_IfTrue<TValidationType>
+{
+    Func<TValidationType, Task<bool>> ifTrue;
+    bool? result = null;
+
+    public WhenStringValidator_IfTrue(Func<TValidationType, Task<bool>> ifTrue)
+    {
+        this.ifTrue = ifTrue;
+    }
+
+    public async Task<bool> CanValidate(TValidationType input)
+    {
+        if (result != null) return result.Value;
+
+        return await ifTrue.Invoke(input);
+    }
+}
+
 public sealed class WhenStringValidator<TValidationType> : ScopeBase
 {
     private readonly string whenDescription;
-    private readonly Func<TValidationType, bool> ifTrue;
+    private readonly Func<TValidationType, Task<bool>> ifTrue;
     private readonly Action rules;
     public override string Name => whenDescription;
-    
+    WhenStringValidator_IfTrue<TValidationType> something;
+
     public WhenStringValidator(
         ValidationConstructionStore validatorStore,
         string whenDescription,
-        Func<TValidationType, bool> ifTrue,
+        Func<TValidationType, Task<bool>> ifTrue,
         Action rules
     ) : base(validatorStore)
     {
         this.whenDescription = whenDescription;
         this.ifTrue = ifTrue;
         this.rules = rules;
-        //Decorator = (item, parent) => new WhenValidationItemDecorator(false, item.FieldDescriptor, parent, item);
+        something = new WhenStringValidator_IfTrue<TValidationType>(ifTrue);
+        Decorator = (item) => new WhenValidationItemDecorator<TValidationType>(item, something, null);
     }
 
     protected override void InvokeScopeContainer(ValidationConstructionStore store,object? value) { 
@@ -523,28 +596,132 @@ public sealed class WhenStringValidator<TValidationType> : ScopeBase
     }
 }
 
-//public class WhenValidationItemDecorator : ValidatableStoreItem
-//{
-//    public WhenValidationItemDecorator(
-//        bool isVital, 
-//        IFieldDescriptorOutline fieldDescriptorOutline, 
-//        ScopeParent parent, 
-//        IValidatableStoreItem itemToDecorate
-//    )
-//        : base(isVital, fieldDescriptorOutline, parent, itemToDecorate)
-//    {
-//    }
-//}
+public abstract class WhenValidationItemDecoratorBase<TValidationType> : IValidatableStoreItem
+{
+    public WhenValidationItemDecoratorBase(
+        IValidatableStoreItem itemToDecorate
+    )
+    {
+        ItemToDecorate = itemToDecorate;
+    }
+
+    public bool IsVital => ItemToDecorate.IsVital;
+
+    public ScopeParent? ScopeParent
+    {
+        get { return ItemToDecorate.ScopeParent; }
+        set { ItemToDecorate.ScopeParent = value; }
+    }
+
+    public FieldExecutor CurrentFieldExecutor
+    {
+        get { return ItemToDecorate.CurrentFieldExecutor; }
+        set { ItemToDecorate.CurrentFieldExecutor = value; }
+    }
+
+    public IFieldDescriptorOutline FieldDescriptor
+    {
+        get { return ItemToDecorate.FieldDescriptor; }
+        set { ItemToDecorate.FieldDescriptor = value; }
+    }
+
+    public IValidationComponent Component => ItemToDecorate.Component;
+
+    public IValidatableStoreItem ItemToDecorate { get; }
+
+    public virtual DescribeActionResult Describe()
+    {
+        //var x = new DescribeActionResult("when");
+        return ItemToDecorate.Describe();
+    }
+
+    public IValidatableStoreItem? GetChild()
+    {
+        return ItemToDecorate.GetChild();
+    }
+
+    public object? GetValue(object? value)
+    {
+        return ItemToDecorate.GetValue(value);
+    }
+
+    public void SetParent(FieldExecutor fieldExecutor)
+    {
+        ItemToDecorate.SetParent(fieldExecutor);
+    }
+
+    public abstract Task<bool> CanValidate(object? instance);
+
+    public virtual void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor) 
+    {
+        ItemToDecorate.ReHomeScopes(attemptedScopeFieldDescriptor);
+    }
+    public Task InitScopes(object? instance)
+    {
+        return ItemToDecorate.InitScopes(instance);
+    }
+    public virtual ValidationActionResult Validate(object? value)
+    {
+        return ItemToDecorate.Validate(value);
+    }
+}
+
+public class WhenValidationItemDecorator<TValidationType> : WhenValidationItemDecoratorBase<TValidationType>
+{
+    private readonly WhenStringValidator_IfTrue<TValidationType> ifTrue;
+    private readonly IScopeData? scopedData;
+
+    public WhenValidationItemDecorator(
+        IValidatableStoreItem itemToDecorate,
+        WhenStringValidator_IfTrue<TValidationType> ifTrue,
+        IScopeData? scopedData
+    ) : base(itemToDecorate)
+    {
+        this.ifTrue = ifTrue;
+        this.scopedData = scopedData;
+    }
+
+    public override async Task<bool> CanValidate(object? instance)
+    {
+        //var diffValue = ItemToDecorate..CurrentFieldExecutor.GetValue(instance);
+        //var value = FieldDescriptor?.GetValue(instance) ?? instance;
+        var result = await ifTrue.CanValidate((TValidationType)instance);
+        scopedData?.Init(instance);
+        
+        if (result)
+            return await ItemToDecorate.CanValidate(instance);
+        return result;
+    }
+}
+
+public class WhenValidationItemDecorator_Scoped<TValidationType, TPassThrough> : WhenValidationItemDecoratorBase<TValidationType>
+{
+    private readonly WhenStringValidator_IfTruescoped<TValidationType, TPassThrough> ifTrue;
+
+    public WhenValidationItemDecorator_Scoped(
+        IValidatableStoreItem itemToDecorate,
+        WhenStringValidator_IfTruescoped<TValidationType, TPassThrough> ifTrue
+    ) : base(itemToDecorate)
+    {
+        this.ifTrue = ifTrue;
+    }
+
+    public override Task<bool> CanValidate(object? instance)
+    {
+        return ifTrue.CanValidate((TValidationType)instance);
+    }
+}
 
 //public class PassThroughValue<TPassThrough> { }
 
 public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : ScopeBase//IValidatorScope, IValidationScopeStoreItem
 {
     private readonly string whenDescription;
-    private readonly Func<TValidationType, bool> ifTrue;
+    private readonly Func<TValidationType, Task<bool>> ifTrue;
     private readonly ScopedData<TValidationType, TPassThrough> scoped;
     private readonly Action<ScopedData<TValidationType, TPassThrough>> rules;
     public override string Name => whenDescription;
+    WhenStringValidator_IfTrue<TValidationType> something;
     /*
      * When( 
      * "desc", 
@@ -559,8 +736,8 @@ public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : S
         ValidationConstructionStore validatorStore,
         //IParentScope? parent,
         string whenDescription,
-        Func<TValidationType, bool> ifTrue,
-        Func<TValidationType, TPassThrough> scoped,
+        Func<TValidationType, Task<bool>> ifTrue,
+        Func<TValidationType, Task<TPassThrough>> scoped,
         Action<ScopedData<TValidationType, TPassThrough>> rules
     ): base(validatorStore)
     {
@@ -568,6 +745,13 @@ public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : S
         this.ifTrue = ifTrue;
         this.scoped = new ScopedData<TValidationType, TPassThrough>(scoped);
         this.rules = rules;
+
+        something = new WhenStringValidator_IfTrue<TValidationType>(ifTrue);
+        Decorator = (item) => new WhenValidationItemDecorator<TValidationType>(
+            item, 
+            something,
+            this.scoped
+            );
     }
 
     protected override void InvokeScopeContainer(ValidationConstructionStore store, object? value)
@@ -581,22 +765,49 @@ public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : S
     }
 }
 
+public class WhenStringValidator_IfTruescoped<TValidationType, TScopedData>
+{
+    Func<TValidationType, TScopedData, Task<bool>> ifTrue;
+    private readonly ScopedData<TValidationType, TScopedData> scopedData;
+    bool? result = null;
+
+    public WhenStringValidator_IfTruescoped(
+        Func<TValidationType, TScopedData, Task<bool>> ifTrue,
+        ScopedData<TValidationType, TScopedData> scopedData
+        )
+    {
+        this.ifTrue = ifTrue;
+        this.scopedData = scopedData;
+    }
+
+    public async Task<bool> CanValidate(TValidationType input)
+    {
+        if (result != null) return result.Value;
+        await scopedData.Init(input);
+        var data = scopedData.GetValue();
+        if (data is not TScopedData converted) return false;
+
+        return await ifTrue.Invoke(input, converted);
+    }
+}
+
 public sealed class WhenScopeToValidator<TValidationType, TPassThrough> 
     : ScopeBase, IValidatorScope, IExpandableEntity
 {
     private readonly string whenDescription;
     private readonly ScopedData<TValidationType, TPassThrough> scoped;
-    private readonly Func<TValidationType, TPassThrough, bool> ifTrue;
+    private readonly Func<TValidationType, TPassThrough, Task<bool>> ifTrue;
     private readonly Action<ScopedData<TValidationType, TPassThrough>> rules;
 
     public override string Name => whenDescription;
+    WhenStringValidator_IfTruescoped<TValidationType, TPassThrough> something;
 
     public WhenScopeToValidator(
         //ValidationConstructionStore parentStore,
         ValidationConstructionStore validatorStore,
         string whenDescription,
-        Func<TValidationType, TPassThrough> scoped,
-        Func<TValidationType, TPassThrough, bool> ifTrue,
+        Func<TValidationType, Task<TPassThrough>> scoped,
+        Func<TValidationType, TPassThrough, Task<bool>> ifTrue,
         Action<ScopedData<TValidationType, TPassThrough>> rules
     ) : base(validatorStore)
     {
@@ -606,6 +817,17 @@ public sealed class WhenScopeToValidator<TValidationType, TPassThrough>
         this.ifTrue = ifTrue;
         this.scoped = new ScopedData<TValidationType, TPassThrough>(scoped);
         this.rules = rules;
+        something = new WhenStringValidator_IfTruescoped<TValidationType, TPassThrough>
+            (
+            ifTrue,
+            this.scoped
+            );
+        Decorator = (item) => new WhenValidationItemDecorator_Scoped
+        <TValidationType, TPassThrough>
+        (
+            item, 
+            something
+        );
     }
 
     //public override void ExpandToValidate(ValidationConstructionStore store, object? value)
@@ -654,9 +876,10 @@ public interface IFieldDescriptor<TValidationType, TFieldType> : IFieldDescripto
 public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType> 
     : IExpandableEntity
 {
+    public bool IgnoreScope => false;
     private readonly IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor;
     private IExpandableEntity component;
-    public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator => null;
+    public Func<IValidatableStoreItem, IValidatableStoreItem>? Decorator => null;
     object? RetrievedValue = null;
     bool ValueHasBeenRetrieved = false;
 
@@ -677,16 +900,16 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
 
     public void ExpandToValidate(ValidationConstructionStore store, object? value)
     {
-        TFieldType? temp = default;
-        if (value is TValidationType result && result != null){
-            temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
-            RetrievedValue = temp;
-            ValueHasBeenRetrieved = true;
-        }
+        //TFieldType? temp = default;
+        //if (value is TValidationType result && result != null){
+        //    temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
+        //    RetrievedValue = temp;
+        //    ValueHasBeenRetrieved = true;
+        //}
 
         if (IsVital) component.AsVital();
 
-        component.ExpandToValidate(store, temp);
+        component.ExpandToValidate(store, value);
     }
 
     public void ExpandToDescribe(ValidationConstructionStore store)
@@ -744,9 +967,10 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
 
 public class FieldDescriptionNonExpandableWrapper : IExpandableEntity
 {
+    public bool IgnoreScope => false;
     private readonly IFieldDescriptorOutline fieldDescriptorOutline;
     private IValidationComponent component;
-    public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator => null;
+    public Func<IValidatableStoreItem, IValidatableStoreItem>? Decorator => null;
     public void AsVital() { IsVital = true; }
 
     public FieldDescriptionNonExpandableWrapper(
@@ -1022,7 +1246,7 @@ public abstract class AbstractValidatorBase <TValidationType>
 
     public void When(
         string whenDescription,
-        Func<TValidationType, bool> ifTrue,
+        Func<TValidationType, Task<bool>> ifTrue,
         Action rules)
     {
         var context = new WhenStringValidator<TValidationType>(
@@ -1035,8 +1259,8 @@ public abstract class AbstractValidatorBase <TValidationType>
 
     public void ScopeWhen<TPassThrough>(
         string whenDescription,
-        Func<TValidationType, bool> ifTrue,
-        Func<TValidationType, TPassThrough> scoped,
+        Func<TValidationType, Task<bool>> ifTrue,
+        Func<TValidationType, Task<TPassThrough>> scoped,
         Action<ScopedData<TValidationType, TPassThrough>> rules)
     {
         var context = new WhenScopedResultValidator<TValidationType, TPassThrough>(
@@ -1050,8 +1274,8 @@ public abstract class AbstractValidatorBase <TValidationType>
 
     public void ScopeWhen<TPassThrough>(
         string whenDescription,
-        Func<TValidationType, TPassThrough> scoped,
-        Func<TValidationType, TPassThrough, bool> ifTrue,
+        Func<TValidationType, Task<TPassThrough>> scoped,
+        Func<TValidationType, TPassThrough, Task<bool>> ifTrue,
         Action<ScopedData<TValidationType, TPassThrough>> rules)
     {
         var context = new WhenScopeToValidator<TValidationType, TPassThrough>(
@@ -1081,8 +1305,9 @@ public abstract class AbstractValidator<TValidationType>
 public abstract class AbstractSubValidator<TValidationType>
     : AbstractValidatorBase<TValidationType>, ISubValidatorClass
 {
+    public bool IgnoreScope => false;
     public override string Name => typeof(TValidationType).Name;
-    public Func<IValidatableStoreItem, ScopeParent, IValidatableStoreItem>? Decorator => null;
+    public Func<IValidatableStoreItem, IValidatableStoreItem>? Decorator => null;
 
     bool _isVital = false;
     public void AsVital() {  _isVital = true; }
@@ -1127,12 +1352,12 @@ public class SongValidator : AbstractSubValidator<Song>
 
         When(
             "TrackNumber is 1",
-            (instance) => instance.TrackNumber == 1,
+            (instance) => Task.FromResult(instance.TrackNumber == 0),
             () =>
             {
                 Describe(x => x.Duration)
                     .IsEqualTo(
-                        2.3,
+                        3.3,
                         options =>
                             options
                                 .WithErrorMessage("Duration Error Message.")
@@ -1141,7 +1366,7 @@ public class SongValidator : AbstractSubValidator<Song>
 
                 When(
                    "TrackNumber is not 100",
-                   (instance) => instance.TrackNumber != 100,
+                   (instance) => Task.FromResult(instance.TrackNumber != 100),
                    () =>
                    {
                        Describe(x => x.Duration)
@@ -1190,7 +1415,9 @@ public static partial class IFieldValidatorExtensions
 
 public class RepositoryFake
 {
-    public static Task<string> GetValue(Album value) { return Task.FromResult(value.Name + " Retrieved From Repository"); }
+    public static Task<string> GetStringValue(string result) { 
+        return Task.FromResult(result); 
+    }
 }
 
 public class AlbumValidator : AbstractValidator<Album>
@@ -1202,22 +1429,35 @@ public class AlbumValidator : AbstractValidator<Album>
 
         ScopeWhen(
             "Soemthing",
-            (x) => true,
-            async (Album value) => await RepositoryFake.GetValue(value),
+            async (Album value) => await RepositoryFake.GetStringValue("Album 1!"),
+            (x, scopeData) => Task.FromResult(scopeData != "Album 1"),
             (scopeData) =>
         {
+            Describe(x => x.Name)
+                .IsEqualTo(scopeData);
+        });
+
+        ScopeWhen(
+            "Soemthing",
+            (x) => Task.FromResult(true),
+            async (Album value) => await RepositoryFake.GetStringValue("a string"),
+            (scopeData) =>
+        {
+            Describe(x => x.Name)
+                .IsEqualTo("Not The Name");
+
             When(
                 "another somethign",
-                (x) => true,
+                (x) => Task.FromResult(true),
                 () =>
             {
                 DescribeEnumerable(x => x.Songs)
                     .NotNull()
-                    .Vitally().ForEach(x => x
-                        .Vitally().NotNull()
-                        .SetValidator(new SongValidator())
-                    )
-                    ;
+                .Vitally().ForEach(x => x
+                    .Vitally().NotNull()
+                    .SetValidator(new SongValidator())
+                )
+                ;
             });
         });
     }
@@ -1284,7 +1524,8 @@ public class ValidationResult
             }
             child = child.PreviousScope;
         }
-        
+        var realName = item.CurrentFieldExecutor?.FieldDescriptor?.PropertyName
+            ?? item.FieldDescriptor.PropertyName;
         var existingProperty = Results.SingleOrDefault(r => r.Property == item.FieldDescriptor.PropertyName);
         var newOutcome = new ValidationOutcome(item.FieldDescriptor.PropertyName, outcome.Success, outcome.Message);
         if (existingProperty != null)
@@ -1365,7 +1606,7 @@ public class ValidationRunner<TValidationType>
         this.mainValidators = mainValidators;
     }
 
-    public ValidationResult Validate(TValidationType instance)
+    public async Task<ValidationResult> Validate(TValidationType instance)
     {
         var validationResult = new ValidationResult();
         var store = new ValidationConstructionStore();
@@ -1387,7 +1628,7 @@ public class ValidationRunner<TValidationType>
         var vitallyFailedFields = new List<string>();
         foreach (var validationObjectGroup in groupedItems)
         {
-            foreach(var propertyGroup in validationObjectGroup)
+            foreach (var propertyGroup in validationObjectGroup)
             {
                 if (vitallyFailedFields
                     .Any(f => propertyGroup.FieldDescriptor.PropertyName.StartsWith(f))
@@ -1395,26 +1636,30 @@ public class ValidationRunner<TValidationType>
                 {
                     continue;
                 }
-
-                var data = propertyGroup.GetValue(instance);
-                var result = propertyGroup.GetValidationAction().Validate(data);
-                if (!result.Success)
+                
+                if (await propertyGroup.CanValidate(instance)) 
                 {
-                    validationResult.AddItem(propertyGroup, result);
-
-                    if (propertyGroup.IsVital)
+                    //await propertyGroup.InitScopes(instance);
+                    var data = propertyGroup.GetValue(instance);
+                    var result = propertyGroup.Validate(data);
+                    if (!result.Success)
                     {
-                        vitallyFailedFields.Add(propertyGroup.FieldDescriptor.PropertyName);
-                        break;
+                        validationResult.AddItem(propertyGroup, result);
+
+                        if (propertyGroup.IsVital)
+                        {
+                            vitallyFailedFields.Add(propertyGroup.FieldDescriptor.PropertyName);
+                            break;
+                        }
                     }
-                }
-                var failedFields = result.GetFailedDependantFields(propertyGroup.FieldDescriptor.PropertyName, validationResult);
-                if (failedFields?.Any() == true)
-                {
-                    if (propertyGroup.IsVital)
+                    var failedFields = result.GetFailedDependantFields(propertyGroup.FieldDescriptor.PropertyName, validationResult);
+                    if (failedFields?.Any() == true)
                     {
-                        vitallyFailedFields.AddRange(failedFields);
-                        break;
+                        if (propertyGroup.IsVital)
+                        {
+                            vitallyFailedFields.AddRange(failedFields);
+                            break;
+                        }
                     }
                 }
             }
@@ -1446,7 +1691,7 @@ public class ValidationRunner<TValidationType>
         {
             foreach (var propertyGroup in validationObjectGroup)
             {
-                var result = propertyGroup.GetValidationAction().Describe();
+                var result = propertyGroup.Describe();
                 descriptionResult.AddItem(propertyGroup, result);
 
                 if (propertyGroup.IsVital) break;
@@ -1475,14 +1720,14 @@ public class BasicLevelTests
     }
 
     [Fact]
-    public void BasicValidator_Validate_ToJson()
+    public async Task BasicValidator_Validate_ToJson()
     {
         // Arrange
         var validator = new AlbumValidator();
         var runner = new ValidationRunner<Album>(new List<IMainValidator<Album>>() { validator });
 
         // Act
-        var results = runner.Validate(new Album());
+        var results = await runner.Validate(new Album());
         var json = new JsonConverter().ToJson(results);
 
         // Assert

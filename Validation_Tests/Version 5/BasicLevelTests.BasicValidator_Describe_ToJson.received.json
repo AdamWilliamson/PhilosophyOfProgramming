@@ -1,0 +1,153 @@
+﻿{
+    "results": [
+        {
+            "property": "Name",
+            "outcomes": [
+                {
+                    "propertyName": "Name",
+                    "message": "Must not be null",
+                    "group": null
+                },
+                {
+                    "propertyName": "Name",
+                    "message": "Must equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": null
+                    }
+                },
+                {
+                    "propertyName": "Name",
+                    "message": "Must equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": null
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs",
+            "outcomes": [
+                {
+                    "propertyName": "Songs",
+                    "message": "Must not be null",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": null
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[n]",
+            "outcomes": [
+                {
+                    "propertyName": "Songs[n]",
+                    "message": "Must not be null",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": null
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[n].TrackName",
+            "outcomes": [
+                {
+                    "propertyName": "Songs[n].TrackName",
+                    "message": "Must equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": null
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "property": "Songs[n].Duration",
+            "outcomes": [
+                {
+                    "propertyName": "Songs[n].Duration",
+                    "message": "Duration Description.",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": {
+                                    "name": "TrackNumber is 1",
+                                    "description": "TrackNumber is 1",
+                                    "group": {
+                                        "name": "TrackNumber is 1",
+                                        "description": "TrackNumber is 1",
+                                        "group": null
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "propertyName": "Songs[n].Duration",
+                    "message": "Must equal to value",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": {
+                            "name": "another somethign",
+                            "description": "another somethign",
+                            "group": {
+                                "name": "Nothing",
+                                "description": "Nothing",
+                                "group": {
+                                    "name": "TrackNumber is 1",
+                                    "description": "TrackNumber is 1",
+                                    "group": {
+                                        "name": "TrackNumber is not 100",
+                                        "description": "TrackNumber is not 100",
+                                        "group": {
+                                            "name": "TrackNumber is not 100",
+                                            "description": "TrackNumber is not 100",
+                                            "group": null
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
