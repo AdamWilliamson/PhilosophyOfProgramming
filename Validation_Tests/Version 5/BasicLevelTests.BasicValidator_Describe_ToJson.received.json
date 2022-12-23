@@ -10,7 +10,7 @@
                 },
                 {
                     "propertyName": "Name",
-                    "message": "Must equal to value",
+                    "message": "Must equal to 'null'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -19,7 +19,7 @@
                 },
                 {
                     "propertyName": "Name",
-                    "message": "Must equal to value",
+                    "message": "Must equal to 'Not The Name'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -58,11 +58,7 @@
                         "group": {
                             "name": "another somethign",
                             "description": "another somethign",
-                            "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
-                                "group": null
-                            }
+                            "group": null
                         }
                     }
                 }
@@ -73,18 +69,14 @@
             "outcomes": [
                 {
                     "propertyName": "Songs[n].TrackName",
-                    "message": "Must equal to value",
+                    "message": "Must equal to 'A Song Title2'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
                         "group": {
                             "name": "another somethign",
                             "description": "another somethign",
-                            "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
-                                "group": null
-                            }
+                            "group": null
                         }
                     }
                 }
@@ -103,24 +95,16 @@
                             "name": "another somethign",
                             "description": "another somethign",
                             "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
-                                "group": {
-                                    "name": "TrackNumber is 1",
-                                    "description": "TrackNumber is 1",
-                                    "group": {
-                                        "name": "TrackNumber is 1",
-                                        "description": "TrackNumber is 1",
-                                        "group": null
-                                    }
-                                }
+                                "name": "TrackNumber is 1",
+                                "description": "TrackNumber is 1",
+                                "group": null
                             }
                         }
                     }
                 },
                 {
                     "propertyName": "Songs[n].Duration",
-                    "message": "Must equal to value",
+                    "message": "Must equal to '3.3333'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -128,20 +112,12 @@
                             "name": "another somethign",
                             "description": "another somethign",
                             "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
+                                "name": "TrackNumber is 1",
+                                "description": "TrackNumber is 1",
                                 "group": {
-                                    "name": "TrackNumber is 1",
-                                    "description": "TrackNumber is 1",
-                                    "group": {
-                                        "name": "TrackNumber is not 100",
-                                        "description": "TrackNumber is not 100",
-                                        "group": {
-                                            "name": "TrackNumber is not 100",
-                                            "description": "TrackNumber is not 100",
-                                            "group": null
-                                        }
-                                    }
+                                    "name": "TrackNumber is not 100",
+                                    "description": "TrackNumber is not 100",
+                                    "group": null
                                 }
                             }
                         }

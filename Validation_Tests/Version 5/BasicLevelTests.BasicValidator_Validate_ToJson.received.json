@@ -7,7 +7,7 @@
                     "isFailed": true,
                     "isSucceeded": false,
                     "propertyName": "Name",
-                    "message": "Is not equal to value",
+                    "message": "Is not equal to 'Album 1!'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -18,7 +18,7 @@
                     "isFailed": true,
                     "isSucceeded": false,
                     "propertyName": "Name",
-                    "message": "Is not equal to value",
+                    "message": "Is not equal to 'Not The Name'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -34,7 +34,7 @@
                     "isFailed": true,
                     "isSucceeded": false,
                     "propertyName": "Songs[0].TrackName",
-                    "message": "Is not equal to value",
+                    "message": "Is not equal to 'A Song Title2'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -64,11 +64,7 @@
                             "group": {
                                 "name": "TrackNumber is 1",
                                 "description": "TrackNumber is 1",
-                                "group": {
-                                    "name": "TrackNumber is 1",
-                                    "description": "TrackNumber is 1",
-                                    "group": null
-                                }
+                                "group": null
                             }
                         }
                     }
@@ -77,7 +73,7 @@
                     "isFailed": true,
                     "isSucceeded": false,
                     "propertyName": "Songs[0].Duration",
-                    "message": "Is not equal to value",
+                    "message": "Is not equal to '3.3333'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -90,11 +86,7 @@
                                 "group": {
                                     "name": "TrackNumber is not 100",
                                     "description": "TrackNumber is not 100",
-                                    "group": {
-                                        "name": "TrackNumber is not 100",
-                                        "description": "TrackNumber is not 100",
-                                        "group": null
-                                    }
+                                    "group": null
                                 }
                             }
                         }

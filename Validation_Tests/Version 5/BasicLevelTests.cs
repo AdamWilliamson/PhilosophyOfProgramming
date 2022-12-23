@@ -268,177 +268,154 @@ public interface IValidationComponent
 
 public class ValidationActionResult
 {
-    public ValidationActionResult(bool success, string message)
+    public ValidationActionResult(
+        string validator,
+        bool success, 
+        string message,
+        List<KeyValuePair<string,string>> keyValues)
     {
+        Validator = validator;
         Success = success;
         Message = message;
+        KeyValues = keyValues;
     }
 
+    public static ValidationActionResult Successful(string validator)
+    {
+        return new ValidationActionResult(validator, true, "", new());
+    }
+
+    public string Validator { get; }
     public bool Success { get; }
-    public string Message { get; }
+    public string Message { get; protected set; }
+    public List<KeyValuePair<string, string>> KeyValues { get; }
 
     public virtual List<string>? GetFailedDependantFields(string currentProperty, ValidationResult currentValidationResult)
     {
         return null;
     }
+
+    public void UpdateMessageProcessor(string message)
+    {
+        Message = message;
+    }
 }
 
 public class DescribeActionResult
 {
-    public DescribeActionResult(string message)
+    public DescribeActionResult(
+        string validator,
+        string message,
+        List<KeyValuePair<string, string>> keyValues)
+    {
+        Validator = validator;
+        Message = message;
+        KeyValues = keyValues;
+    }
+
+    public string Validator { get; }
+    public string Message { get; protected set; }
+    public List<KeyValuePair<string, string>> KeyValues { get; }
+
+    internal void UpdateDescription(string message)
     {
         Message = message;
     }
-
-    public string Message { get; }
 }
 
-public abstract class ValidationComponentBase : IValidationComponent//, IValidationAction
+public abstract class ValidationComponentBase : IValidationComponent
 {
     public abstract string Name { get; }
     public abstract string DescriptionTemplate { get; protected set; }
     public abstract string ErrorTemplate { get; protected set; }
-    //public IParentScope CurrentParent { get; }
 
     public virtual void SetDescriptionTemplate(string desc) { DescriptionTemplate = desc; }
     public virtual void SetErrorTemplate(string error) { ErrorTemplate = error; }
 
-    public ValidationComponentBase()
-    {
-        //CurrentParent = currentParent;
-    }
-
-    //public virtual IValidationAction GetValidationAction()
-    //{
-    //    return this;
-    //}
-
+    public ValidationComponentBase(){}
+   
     public virtual void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor) { }
     public virtual Task InitScopes(object? instance) { return Task.CompletedTask; }
     public abstract ValidationActionResult Validate(object? value);
-    //{
 
-
-    //    return new ValidationActionResult(
-    //        success: true,
-    //        message: ErrorTemplate
-    //    );
-    //}
-
-
-    public virtual DescribeActionResult Describe()
-    {
-        return new DescribeActionResult(DescriptionTemplate);
-    }
+    public abstract DescribeActionResult Describe();
 }
 
-//public class ComponentWrapper : ValidationComponentBase
-//{
-//    private readonly IValidationComponent validation;
-//    private readonly IScopeData scopedData;
-
-//    public ComponentWrapper(Action<IValidationComponent> validation, IScopeData scopedData)
-//    {
-//        this.validation = validation;
-//        this.scopedData = scopedData;
-//    }
-
-//    public override string Name => validation.Name;
-
-//    public override string DescriptionTemplate 
-//    { 
-//        get { return validation.DescriptionTemplate; }
-//        protected set { SetDescriptionTemplate(value); }
-//    }
-
-//    public override string ErrorTemplate 
-//    { 
-//        get { return validation.ErrorTemplate; } 
-//        protected set { validation.SetErrorTemplate(value); }
-//    }
-
-//    public override void SetDescriptionTemplate(string desc) { validation.SetDescriptionTemplate(desc); }
-//    public override void SetErrorTemplate(string error) { validation.SetErrorTemplate(error); }
-
-//    //public override IValidationAction GetValidationAction()
-//    //{
-//    //    return validation;//.GetValidationAction();
-//    //}
-
-//    public override DescribeActionResult Describe()
-//    {
-//        return validation.Describe();
-//    }
-
-//    public override ValidationActionResult Validate(object? value)
-//    {
-//        var realValue = scopedData switch
-//        {
-//            null => value,
-//            _ => scopedData.GetValue(value)
-//        };
-
-//        return validation.Validate(realValue);
-//    }
-//}
-
-public class IsEqualToValidation : ValidationComponentBase //: ValidationBase<IComparable>
+public class IsEqualToValidation : ValidationComponentBase
 {
     private const string ValueToken = "value";
-    private IComparable? Value { get; set; }
-    private readonly IScopeData scopedData;
+    private readonly IComparable? Value = null;
+    private readonly IScopeData? scopedData = null;
 
     public IsEqualToValidation(IScopeData scopedData)
     {
         this.scopedData = scopedData;
     }
 
-    public IsEqualToValidation(IComparable value)
+    public IsEqualToValidation(IComparable? value)
     {
         Value = value;
     }
 
     public override string Name { get; } = "Equal To";
-    public override string DescriptionTemplate { get; protected set; } = $"Must equal to {ValueToken}";
-    public override string ErrorTemplate { get; protected set; } = $"Is not equal to {ValueToken}";
-
-    //public override async Task InitScopes(object? instance)
-    //{
-    //    Value = scopedData switch
-    //    {
-    //        null => Value,
-    //        _ => (IComparable) await scopedData.GetValue(instance)
-    //    };
-    //}
+    public override string DescriptionTemplate { get; protected set; } = $"Must equal to '{ValueToken}'";
+    public override string ErrorTemplate { get; protected set; } = $"Is not equal to '{ValueToken}'";
 
     public override void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor)
     {
         scopedData?.ReHome(attemptedScopeFieldDescriptor);
     }
 
+    protected TResult? GetData<TResult>(IScopeData? scopedData, TResult? value) 
+    {
+        return scopedData switch
+        {
+            null => value,
+            _ => (TResult?)scopedData.GetValue()
+        };
+    }
+
     public override ValidationActionResult Validate(object? value)
     {
         Debug.WriteLine("IsEqualTo - Validate: " + value?.ToString());
-        var RealValue = scopedData switch
-        {
-            null => Value,
-            _ => (IComparable)scopedData.GetValue()
-        };
+        var RealValue = GetData(scopedData, Value);
 
-        if (RealValue.Equals(value))
+        if (
+            (RealValue == null && value == null)
+            || RealValue?.Equals(value) == true
+        )
         {
-            return new ValidationActionResult(
-                success: true,
-                message: ErrorTemplate
-            );
+            return ValidationActionResult.Successful(nameof(IsEqualToValidation));
         }
         else
         {
+            var valueAsString = RealValue?.ToString() ?? "null";
+
             return new ValidationActionResult(
+                validator: nameof(IsEqualToValidation),
                 success: false,
-                message: ErrorTemplate
+                message: ErrorTemplate,
+                new List<KeyValuePair<string, string>>()
+                {
+                    new(ValueToken, valueAsString)
+                }
             );
         }
+    }
+
+    public override DescribeActionResult Describe()
+    {
+        var RealValue = GetData(scopedData, Value);
+        var valueAsString = RealValue?.ToString() ?? "null";
+
+        return new DescribeActionResult(
+            validator: nameof(IsEqualToValidation),
+            message: DescriptionTemplate,
+            new List<KeyValuePair<string, string>>()
+            {
+                new(ValueToken, valueAsString)
+            }
+        );
     }
 }
 
@@ -448,31 +425,38 @@ public class NotNullValidation : ValidationComponentBase
     public override string DescriptionTemplate { get; protected set; } = $"Must not be null";
     public override string ErrorTemplate { get; protected set; } = $"Is no null";
 
-    public NotNullValidation()
-    {}
+    public NotNullValidation(){}
 
     public override ValidationActionResult Validate(object? value)
     {
         Debug.WriteLine("NotNull - Validate: " + value?.ToString());
-        //Console.WriteLine("NotNull - Validate: " + value?.ToString());
+
         if (value != null)
         {
-            return new ValidationActionResult(
-                success: true,
-                message: ErrorTemplate
-            );
+            return ValidationActionResult.Successful(nameof(NotNullValidation));
         }
         else
         {
             return new ValidationActionResult(
+               validator: nameof(NotNullValidation),
                 success: false,
-                message: ErrorTemplate
+                message: ErrorTemplate,
+                new List<KeyValuePair<string, string>>()
             );
         }
     }
+
+    public override DescribeActionResult Describe()
+    {
+        return new DescribeActionResult(
+            validator: nameof(NotNullValidation),
+            message: DescriptionTemplate,
+            new List<KeyValuePair<string, string>>()
+        );
+    }
 }
 
-public class CustomFuncValidation<TFieldType> : ValidationComponentBase //: ValidationBase<IComparable>
+public class CustomFuncValidation<TFieldType> : ValidationComponentBase
 {
     public override string Name { get; } = "Custom Function";
     public override string DescriptionTemplate { get; protected set; } = $"Must Pass a custom function.";
@@ -493,6 +477,15 @@ public class CustomFuncValidation<TFieldType> : ValidationComponentBase //: Vali
     public override ValidationActionResult Validate(object? value)
     {
         return CustomValidation.Invoke((TFieldType) value);
+    }
+
+    public override DescribeActionResult Describe()
+    {
+        return new DescribeActionResult(
+            validator: nameof(CustomFuncValidation<TFieldType>),
+            message: DescriptionTemplate,
+            new List<KeyValuePair<string, string>>()
+        );
     }
 }
 #endregion
@@ -712,9 +705,7 @@ public class WhenValidationItemDecorator_Scoped<TValidationType, TPassThrough> :
     }
 }
 
-//public class PassThroughValue<TPassThrough> { }
-
-public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : ScopeBase//IValidatorScope, IValidationScopeStoreItem
+public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : ScopeBase
 {
     private readonly string whenDescription;
     private readonly Func<TValidationType, Task<bool>> ifTrue;
@@ -722,19 +713,9 @@ public sealed class WhenScopedResultValidator<TValidationType, TPassThrough> : S
     private readonly Action<ScopedData<TValidationType, TPassThrough>> rules;
     public override string Name => whenDescription;
     WhenStringValidator_IfTrue<TValidationType> something;
-    /*
-     * When( 
-     * "desc", 
-     * (instance) => instance.Value == 5,
-     * (instance) => repository.Get(instance.Id),
-     * (scopeData) => Do stuff
-     * )
-     * 
-     */
+
     public WhenScopedResultValidator(
-        //ValidationConstructionStore parentStore,
         ValidationConstructionStore validatorStore,
-        //IParentScope? parent,
         string whenDescription,
         Func<TValidationType, Task<bool>> ifTrue,
         Func<TValidationType, Task<TPassThrough>> scoped,
@@ -796,14 +777,12 @@ public sealed class WhenScopeToValidator<TValidationType, TPassThrough>
 {
     private readonly string whenDescription;
     private readonly ScopedData<TValidationType, TPassThrough> scoped;
-    private readonly Func<TValidationType, TPassThrough, Task<bool>> ifTrue;
     private readonly Action<ScopedData<TValidationType, TPassThrough>> rules;
 
     public override string Name => whenDescription;
     WhenStringValidator_IfTruescoped<TValidationType, TPassThrough> something;
 
     public WhenScopeToValidator(
-        //ValidationConstructionStore parentStore,
         ValidationConstructionStore validatorStore,
         string whenDescription,
         Func<TValidationType, Task<TPassThrough>> scoped,
@@ -811,10 +790,7 @@ public sealed class WhenScopeToValidator<TValidationType, TPassThrough>
         Action<ScopedData<TValidationType, TPassThrough>> rules
     ) : base(validatorStore)
     {
-        //Store= parentStore;
-        //Parent = parent;
         this.whenDescription = whenDescription;
-        this.ifTrue = ifTrue;
         this.scoped = new ScopedData<TValidationType, TPassThrough>(scoped);
         this.rules = rules;
         something = new WhenStringValidator_IfTruescoped<TValidationType, TPassThrough>
@@ -829,15 +805,6 @@ public sealed class WhenScopeToValidator<TValidationType, TPassThrough>
             something
         );
     }
-
-    //public override void ExpandToValidate(ValidationConstructionStore store, object? value)
-    //{
-    //    //validatorStore.PushDecorator((item) => new WhenValidationItemDecorator(false, item.FieldDescriptor, this, item));
-    //    //validatorStore.PushParent(this);
-    //    InvokeScopeContainer(value);
-    //    //validatorStore.PopParent();
-    //    //validatorStore.PopDecorator();
-    //}
 
     protected override void InvokeScopeContainer(ValidationConstructionStore store, object? value)
     {
@@ -900,13 +867,6 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
 
     public void ExpandToValidate(ValidationConstructionStore store, object? value)
     {
-        //TFieldType? temp = default;
-        //if (value is TValidationType result && result != null){
-        //    temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
-        //    RetrievedValue = temp;
-        //    ValueHasBeenRetrieved = true;
-        //}
-
         if (IsVital) component.AsVital();
 
         component.ExpandToValidate(store, value);
@@ -914,11 +874,6 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
 
     public void ExpandToDescribe(ValidationConstructionStore store)
     {
-        //TFieldType? temp = default;
-        //if (value is TValidationType result && result != null)
-        //{
-        //    temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
-        //}
         component.ExpandToDescribe(store);
     }
 
@@ -935,35 +890,6 @@ public class FieldDescriptionExpandableWrapper<TValidationType, TFieldType>
         return RetrievedValue;
     }
 }
-
-//public class ValidatorClassExpandableWrapper<TValidationType, TFieldType> : IExpandableEntity
-//{
-//    private readonly IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor;
-//    private ISubValidatorClass validatorClass;
-
-//    public ValidatorClassExpandableWrapper(
-//        IFieldDescriptor<TValidationType, TFieldType> fieldDescriptor,
-//        bool isVital,
-//        ISubValidatorClass validatorClass
-//    )
-//    {
-//        this.fieldDescriptor = fieldDescriptor;
-//        IsVital = isVital;
-//        this.validatorClass = validatorClass;
-//    }
-
-//    public bool IsVital { get; }
-
-//    public void ExpandToValidate(ValidationConstructionStore store, object? value)
-//    {
-//        TFieldType? temp = default;
-//        if (value is TValidationType result && result != null)
-//        {
-//            temp = fieldDescriptor.PropertyToken.Expression.Compile().Invoke(result);
-//        }
-//        validatorClass.ExpandToValidate(store, temp);
-//    }
-//}
 
 public class FieldDescriptionNonExpandableWrapper : IExpandableEntity
 {
@@ -1370,7 +1296,7 @@ public class SongValidator : AbstractSubValidator<Song>
                    () =>
                    {
                        Describe(x => x.Duration)
-                            .IsEqualTo(3.3);
+                            .IsEqualTo(3.3333);
                        //.Is(AValidDescription,
                        //    "Should have a valid description",
                        //    "The description is invalid");
@@ -1511,30 +1437,31 @@ public class ValidationResult
 {
     public List<ValidationItemResult> Results = new();
 
-    public void AddItem(IValidatableStoreItem item, ValidationActionResult outcome)
+    public void AddItem(ExpandedItem item, ValidationActionResult outcome)
     {
         var scopes = new List<IParentScope>();
 
         var child = item.ScopeParent;
         while (child != null)
         {
-            if (child.CurrentScope != null) 
+            if (child.CurrentScope != null
+                && !scopes.Any(s => s.Id == child.CurrentScope.Id)) 
             {
                 scopes.Add(child.CurrentScope);
             }
             child = child.PreviousScope;
         }
-        var realName = item.CurrentFieldExecutor?.FieldDescriptor?.PropertyName
-            ?? item.FieldDescriptor.PropertyName;
-        var existingProperty = Results.SingleOrDefault(r => r.Property == item.FieldDescriptor.PropertyName);
-        var newOutcome = new ValidationOutcome(item.FieldDescriptor.PropertyName, outcome.Success, outcome.Message);
+        var realName = item.FullAddressableName;
+
+        var existingProperty = Results.SingleOrDefault(r => r.Property == item.PropertyName);
+        var newOutcome = new ValidationOutcome(item.PropertyName, outcome.Success, outcome.Message);
         if (existingProperty != null)
         {
             existingProperty.Outcomes.Add(newOutcome);
         }
         else
         {
-            existingProperty = new ValidationItemResult(item.FieldDescriptor.PropertyName);
+            existingProperty = new ValidationItemResult(item.PropertyName);
             existingProperty.Outcomes.Add(newOutcome);
 
             Results.Add(existingProperty);
@@ -1556,29 +1483,30 @@ public class DescriptionResult
 {
     public List<DescriptionItemResult> Results = new();
 
-    public void AddItem(IValidatableStoreItem item, DescribeActionResult outcome)
+    public void AddItem(ExpandedItem item, DescribeActionResult outcome)
     {
         var scopes = new List<IParentScope>();
 
         var child = item.ScopeParent;
         while (child != null)
         {
-            if (child.CurrentScope != null)
+            if (child.CurrentScope != null 
+                && !scopes.Any(s => s.Id == child.CurrentScope.Id))
             {
                 scopes.Add(child.CurrentScope);
             }
             child = child.PreviousScope;
         }
 
-        var existingProperty = Results.SingleOrDefault(r => r.Property == item.FieldDescriptor.PropertyName);
-        var newOutcome = new DescriptionOutcome(item.FieldDescriptor.PropertyName, outcome.Message);
+        var existingProperty = Results.SingleOrDefault(r => r.Property == item.PropertyName);
+        var newOutcome = new DescriptionOutcome(item.PropertyName, outcome.Message);
         if (existingProperty != null)
         {
             existingProperty.Outcomes.Add(newOutcome);
         }
         else
         {
-            existingProperty = new DescriptionItemResult(item.FieldDescriptor.PropertyName);
+            existingProperty = new DescriptionItemResult(item.PropertyName);
             existingProperty.Outcomes.Add(newOutcome);
 
             Results.Add(existingProperty);
@@ -1600,10 +1528,15 @@ public class DescriptionResult
 public class ValidationRunner<TValidationType>
 {
     private readonly IEnumerable<IMainValidator<TValidationType>> mainValidators;
+    private readonly MessageProcessor messageProcessor;
 
-    public ValidationRunner(IEnumerable<IMainValidator<TValidationType>> mainValidators)
+    public ValidationRunner(
+        IEnumerable<IMainValidator<TValidationType>> mainValidators,
+        MessageProcessor messageProcessor
+        )
     {
         this.mainValidators = mainValidators;
+        this.messageProcessor = messageProcessor;
     }
 
     public async Task<ValidationResult> Validate(TValidationType instance)
@@ -1611,11 +1544,11 @@ public class ValidationRunner<TValidationType>
         var validationResult = new ValidationResult();
         var store = new ValidationConstructionStore();
         var executionStore = new ValidationExecutionStore();
-        var allItems = new List<IValidatableStoreItem>();
+        var allItems = new List<ExpandedItem>();
 
         foreach (var mainValidator in mainValidators)
         {
-            var expandedItems = mainValidator.Store.ExpandToValidate(instance);
+            var expandedItems = mainValidator.Store.Compile(instance);
             if (expandedItems?.Any() == true)
             {
                 allItems.AddRange(expandedItems);
@@ -1623,7 +1556,7 @@ public class ValidationRunner<TValidationType>
         }
 
         var groupedItems = allItems
-            .GroupBy(x => new { x.FieldDescriptor.PropertyName });
+            .GroupBy(x => new { x.PropertyName });
 
         var vitallyFailedFields = new List<string>();
         foreach (var validationObjectGroup in groupedItems)
@@ -1631,7 +1564,7 @@ public class ValidationRunner<TValidationType>
             foreach (var propertyGroup in validationObjectGroup)
             {
                 if (vitallyFailedFields
-                    .Any(f => propertyGroup.FieldDescriptor.PropertyName.StartsWith(f))
+                    .Any(f => propertyGroup.PropertyName.StartsWith(f))
                 )
                 {
                     continue;
@@ -1639,20 +1572,21 @@ public class ValidationRunner<TValidationType>
                 
                 if (await propertyGroup.CanValidate(instance)) 
                 {
-                    //await propertyGroup.InitScopes(instance);
-                    var data = propertyGroup.GetValue(instance);
-                    var result = propertyGroup.Validate(data);
+                    var result = propertyGroup.Validate(instance);
+
                     if (!result.Success)
                     {
+                        messageProcessor.ProcessErrorMessage(result);
+
                         validationResult.AddItem(propertyGroup, result);
 
                         if (propertyGroup.IsVital)
                         {
-                            vitallyFailedFields.Add(propertyGroup.FieldDescriptor.PropertyName);
+                            vitallyFailedFields.Add(propertyGroup.PropertyName);
                             break;
                         }
                     }
-                    var failedFields = result.GetFailedDependantFields(propertyGroup.FieldDescriptor.PropertyName, validationResult);
+                    var failedFields = result.GetFailedDependantFields(propertyGroup.PropertyName, validationResult);
                     if (failedFields?.Any() == true)
                     {
                         if (propertyGroup.IsVital)
@@ -1673,11 +1607,11 @@ public class ValidationRunner<TValidationType>
         var descriptionResult = new DescriptionResult();
         var store = new ValidationConstructionStore();
         var executionStore = new ValidationExecutionStore();
-        var allItems = new List<IValidatableStoreItem>();
+        var allItems = new List<ExpandedItem>();
 
         foreach (var mainValidator in mainValidators)
         {
-            var expandedItems = mainValidator.Store.ExpandToDescribe();
+            var expandedItems = mainValidator.Store.Describe();//ExpandToDescribe();
             if (expandedItems?.Any() == true)
             {
                 allItems.AddRange(expandedItems);
@@ -1685,22 +1619,157 @@ public class ValidationRunner<TValidationType>
         }
 
         var groupedItems = allItems
-            .GroupBy(x => new { x.FieldDescriptor.PropertyName });
+            .GroupBy(x => new { x.PropertyName });
 
         foreach (var validationObjectGroup in groupedItems)
         {
             foreach (var propertyGroup in validationObjectGroup)
             {
                 var result = propertyGroup.Describe();
+                messageProcessor.ProcessDescriptionMessage(result);
                 descriptionResult.AddItem(propertyGroup, result);
-
-                if (propertyGroup.IsVital) break;
             }
         }
 
         return descriptionResult;
     }
 }
+
+
+public class NullLanguageSource : ILanguageSource
+{
+    public List<string> GetCultures()
+    {
+        return new List<string>();
+    }
+
+    public string GetDescriptionTranslation(string key, string originalMessage)
+    {
+        return originalMessage;
+    }
+
+    public string GetErrorTranslation(string key, string originalMessage)
+    {
+        return originalMessage;
+    }
+}
+
+public class LangaugeConfiguration
+{
+    private readonly List<ILanguageSource> languageSources = new();
+    public string? CurrentCulture { get; protected set; } = null;
+    public ILanguageSource CurrentLanguage { get; protected set; } = new NullLanguageSource();
+
+    public void SetCurrentCulture(string? culture) 
+    {
+        if (culture == null)
+        {
+            CurrentCulture = culture;
+            CurrentLanguage = new NullLanguageSource();
+        }
+        else
+        {
+            var foundLanguage = languageSources
+                .FirstOrDefault(x =>
+                    x.GetCultures().Any(c => c.StartsWith(culture))
+                );
+
+            if (foundLanguage != null)
+            {
+                CurrentCulture = culture;
+                CurrentLanguage = foundLanguage;
+            }
+            else
+            {
+                throw new Exception("Current Culture not found.");
+            }
+        }
+    }
+
+    public void AddLanguages(params ILanguageSource[] languages)
+    {
+        languageSources.InsertRange(0, languages);
+    }   
+}
+
+public class Configuration
+{
+    public LangaugeConfiguration Language { get; set; } = new();
+}
+
+public sealed class PopValidations
+{
+    public static Configuration Configuation { get; } = new Configuration();
+}
+
+public interface ILanguageSource
+{
+    List<string> GetCultures();
+    string GetErrorTranslation(string key, string originalMessage);
+    string GetDescriptionTranslation(string key, string originalMessage);
+}
+
+public class MessageProcessor
+{
+    public MessageProcessor(){}
+
+    public string ProcessErrorMessage(
+        string validatorName,
+        string message, 
+        List<KeyValuePair<string, string>> keyValues
+    )
+    {
+        message = PopValidations.Configuation.Language.CurrentLanguage
+            .GetErrorTranslation(validatorName, message);
+
+        foreach (var keyValue in keyValues)
+        {
+            message = message.Replace(keyValue.Key, keyValue.Value);
+        }
+
+        return message;
+    }
+
+    public string ProcessDescription(
+        string validatorName,
+        string message,
+        List<KeyValuePair<string, string>> keyValues
+    )
+    {
+        message = PopValidations.Configuation.Language.CurrentLanguage
+            .GetDescriptionTranslation(validatorName, message);
+
+        foreach (var keyValue in keyValues)
+        {
+            message = message.Replace(keyValue.Key, keyValue.Value);
+        }
+
+        return message;
+    }
+
+    internal void ProcessErrorMessage(ValidationActionResult result)
+    {
+        result.UpdateMessageProcessor(
+            ProcessErrorMessage(
+                result.Validator,
+                result.Message,
+                result.KeyValues 
+            )
+        );
+    }
+
+    internal void ProcessDescriptionMessage(DescribeActionResult result)
+    {
+        result.UpdateDescription(
+            ProcessDescription(
+                result.Validator,
+                result.Message,
+                result.KeyValues
+            )
+        );
+    }
+}
+
 
 public class BasicLevelTests
 {
@@ -1709,7 +1778,10 @@ public class BasicLevelTests
     {
         // Arrange
         var validator = new AlbumValidator();
-        var runner = new ValidationRunner<Album>(new List<IMainValidator<Album>>() { validator });
+        var runner = new ValidationRunner<Album>(
+            new List<IMainValidator<Album>>() { validator },
+            new MessageProcessor()
+        );
 
         // Act
         var results = runner.Describe();
@@ -1724,7 +1796,10 @@ public class BasicLevelTests
     {
         // Arrange
         var validator = new AlbumValidator();
-        var runner = new ValidationRunner<Album>(new List<IMainValidator<Album>>() { validator });
+        var runner = new ValidationRunner<Album>(
+            new List<IMainValidator<Album>>() { validator },
+            new MessageProcessor()
+        );
 
         // Act
         var results = await runner.Validate(new Album());

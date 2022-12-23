@@ -4,22 +4,37 @@
             "property": "Name",
             "outcomes": [
                 {
-                    "isFailed": false,
-                    "isSucceeded": true,
+                    "isFailed": true,
+                    "isSucceeded": false,
                     "propertyName": "Name",
-                    "message": "Is no null",
-                    "group": null
+                    "message": "Is not equal to 'Album 1!'",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": null
+                    }
+                },
+                {
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "Name",
+                    "message": "Is not equal to 'Not The Name'",
+                    "group": {
+                        "name": "Soemthing",
+                        "description": "Soemthing",
+                        "group": null
+                    }
                 }
             ]
         },
         {
-            "property": "Songs",
+            "property": "Songs[0].TrackName",
             "outcomes": [
                 {
-                    "isFailed": false,
-                    "isSucceeded": true,
-                    "propertyName": "Songs",
-                    "message": "Is no null",
+                    "isFailed": true,
+                    "isSucceeded": false,
+                    "propertyName": "Songs[0].TrackName",
+                    "message": "Is not equal to 'A Song Title2'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -33,59 +48,11 @@
             ]
         },
         {
-            "property": "Songs[0]",
-            "outcomes": [
-                {
-                    "isFailed": false,
-                    "isSucceeded": true,
-                    "propertyName": "Songs[0]",
-                    "message": "Is no null",
-                    "group": {
-                        "name": "Soemthing",
-                        "description": "Soemthing",
-                        "group": {
-                            "name": "another somethign",
-                            "description": "another somethign",
-                            "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
-                                "group": null
-                            }
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "property": "Songs[0].TrackName",
-            "outcomes": [
-                {
-                    "isFailed": false,
-                    "isSucceeded": true,
-                    "propertyName": "Songs[0].TrackName",
-                    "message": "Is not equal to value",
-                    "group": {
-                        "name": "Soemthing",
-                        "description": "Soemthing",
-                        "group": {
-                            "name": "another somethign",
-                            "description": "another somethign",
-                            "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
-                                "group": null
-                            }
-                        }
-                    }
-                }
-            ]
-        },
-        {
             "property": "Songs[0].Duration",
             "outcomes": [
                 {
-                    "isFailed": false,
-                    "isSucceeded": true,
+                    "isFailed": true,
+                    "isSucceeded": false,
                     "propertyName": "Songs[0].Duration",
                     "message": "Duration Error Message.",
                     "group": {
@@ -95,8 +62,8 @@
                             "name": "another somethign",
                             "description": "another somethign",
                             "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
+                                "name": "TrackNumber is 1",
+                                "description": "TrackNumber is 1",
                                 "group": {
                                     "name": "TrackNumber is 1",
                                     "description": "TrackNumber is 1",
@@ -107,10 +74,10 @@
                     }
                 },
                 {
-                    "isFailed": false,
-                    "isSucceeded": true,
+                    "isFailed": true,
+                    "isSucceeded": false,
                     "propertyName": "Songs[0].Duration",
-                    "message": "Is not equal to value",
+                    "message": "Is not equal to '3.3'",
                     "group": {
                         "name": "Soemthing",
                         "description": "Soemthing",
@@ -118,11 +85,11 @@
                             "name": "another somethign",
                             "description": "another somethign",
                             "group": {
-                                "name": "Nothing",
-                                "description": "Nothing",
+                                "name": "TrackNumber is 1",
+                                "description": "TrackNumber is 1",
                                 "group": {
-                                    "name": "TrackNumber is 1",
-                                    "description": "TrackNumber is 1",
+                                    "name": "TrackNumber is not 100",
+                                    "description": "TrackNumber is not 100",
                                     "group": {
                                         "name": "TrackNumber is not 100",
                                         "description": "TrackNumber is not 100",

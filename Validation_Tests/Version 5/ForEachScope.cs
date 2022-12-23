@@ -11,7 +11,7 @@ public class ForEachValidationActionResult : ValidationActionResult
     public ForEachValidationActionResult(
         string propertyTest
     )
-        :base(true, "")
+        :base(nameof(ForEachValidationActionResult),true, "", new())
     {
         this.propertyTest = propertyTest;
     }
@@ -48,6 +48,15 @@ public class VitallyForEachValidation : ValidationComponentBase
     public override ValidationActionResult Validate(object? value)
     {
         return new ForEachValidationActionResult(property);
+    }
+
+    public override DescribeActionResult Describe()
+    {
+        return new DescribeActionResult(
+            validator: nameof(VitallyForEachValidation),
+            message: DescriptionTemplate,
+            new List<KeyValuePair<string, string>>()
+        );
     }
 }
 
