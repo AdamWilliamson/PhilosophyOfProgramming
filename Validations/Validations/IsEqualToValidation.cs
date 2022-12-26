@@ -1,40 +1,59 @@
 ﻿using System;
-using System.Collections.Generic;
-using Validations.Scopes;
+using PopValidations.FieldDescriptors.Base;
+using PopValidations.Validations.Base;
 
-namespace Validations.Validations;
+namespace PopValidations.Validations;
 
-public class IsEqualToValidation : ValidationBase<IComparable>
+public class IsEqualToValidation : ValidationComponentBase
 {
-    private const string ValueToken = "value";
-    public override string Name { get; } = "Equal To";
-    public override string DescriptionTemplate { get; } = $"Must equal to {ValueToken}";
-    public override string MessageTemplate { get; } = $"Is not equal to {ValueToken}";
-    public IComparable? Value { get; }
+    public override string DescriptionTemplate { get; protected set; } = "Must equal to '{{value}}'";
+    public override string ErrorTemplate { get; protected set; } = "Is not equal to '{{value}}'";
 
-    public IsEqualToValidation(IComparable value, bool isfatal) : base(isfatal)
+    private readonly IComparable? Value = null;
+    private readonly IScopeData? scopedData = null;
+
+    public IsEqualToValidation(IScopeData scopedData)
+    {
+        this.scopedData = scopedData;
+    }
+
+    public IsEqualToValidation(IComparable? value)
     {
         Value = value;
     }
 
-    public IsEqualToValidation(IScopedData value, bool isfatal) : base(value, isfatal)
-    { }
-
-    protected override Dictionary<string, string> GetTokenValues()
+    public override void ReHomeScopes(IFieldDescriptorOutline attemptedScopeFieldDescriptor)
     {
-        return new()
-        {
-            { ValueToken, Value?.ToString() ?? ScopedData?.GetValue()?.ToString() ?? "Unknown" }
-        };
+        scopedData?.ReHome(attemptedScopeFieldDescriptor);
     }
 
-    public override bool Test(IComparable? scopedValue, object? instanceValue)
+    public override ValidationActionResult Validate(object? value)
     {
-        if (scopedValue == null && Value != null)
-        {
-            return Value.Equals(instanceValue);
-        }
+        var RealValue = GetData(scopedData, Value);
 
-        return scopedValue == null && instanceValue == null || scopedValue?.Equals(instanceValue) == true;
+        if (
+            (RealValue == null && value == null)
+            || RealValue?.Equals(value) == true
+        )
+        {
+            return CreateValidationSuccessful();
+        }
+        else
+        {
+            var valueAsString = RealValue?.ToString() ?? "null";
+
+            return CreateValidationError(
+                    ("value", valueAsString)
+            );
+        }
+    }
+
+    public override DescribeActionResult Describe()
+    {
+        var describedValue = GetDataDescription(scopedData, Value);
+        
+        return CreateDescription(
+                ("value", describedValue)
+        );
     }
 }
